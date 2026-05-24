@@ -131,7 +131,7 @@ body{font-family:'Barlow',sans-serif;background:var(--canvas);color:var(--ink);m
 .spotlight-eyebrow{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
 .eyebrow-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:blink 1.4s infinite;}
 .spotlight-body{display:flex;gap:16px;margin-bottom:20px;}
-.product-visual{width:88px;height:116px;flex-shrink:0;background:var(--surface-el);border:1px solid var(--hl);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 6px;}
+.product-visual{width:88px;height:116px;flex-shrink:0;background:var(--surface-el);border:1px solid var(--hl);overflow:hidden;position:relative;}
 .product-visual-icon{font-size:36px;filter:drop-shadow(0 0 10px rgba(100,200,255,0.5));}
 .product-visual-name{font-size:7px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);text-align:center;line-height:1.3;}
 .product-visual-type{font-size:7px;font-weight:600;color:var(--stone);text-transform:uppercase;}
@@ -669,15 +669,15 @@ body{font-family:'Barlow',sans-serif;background:var(--canvas);color:var(--ink);m
 <script>
 // ── DROPS DATA ──
 const drops = [
-  { label:'Today', eyebrow:'Releasing Today', title:'Chaos Rising', sub:'120+ cards · Unstable Evolution · 5 Mega ex debuts', icon:'🐸', iconName:'Mega Greninja ex', type:'Elite Trainer Box', countdown:true,
+  { label:'Today', eyebrow:'Releasing Today', title:'Chaos Rising', sub:'120+ cards · Unstable Evolution · 5 Mega ex debuts', icon:'🐸', iconName:'Mega Greninja ex', type:'Elite Trainer Box', img:'https://i.ebayimg.com/images/g/DZwAAeSwZcJpsu0f/s-l300.jpg', cardImg:'https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/CRI/CRI_022_R_EN_SM.png', countdown:true,
     products:[['📦','Booster Display','$149.99'],['🎁','Elite Trainer Box','$44.99'],['✨','PC ETB (11pk)','$54.99'],['🃏','Booster Bundle','$24.99'],['⚔️','Build & Battle','$14.99'],['🔖','Booster Pack','$4.99']]},
-  { label:'27 days', eyebrow:'Coming Jun 19', title:'First Partner S2', sub:'Starter Pokémon promos · Jumbo cards · Collection boxes', icon:'🌿', iconName:'Starter Trio', type:'Collection Box', countdown:false,
+  { label:'27 days', eyebrow:'Coming Jun 19', title:'First Partner S2', sub:'Starter Pokémon promos · Jumbo cards · Collection boxes', icon:'🌿', iconName:'Starter Trio', type:'Collection Box', img:'https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/CRI/CRI_001_R_EN_SM.png', cardImg:'https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/CRI/CRI_001_R_EN_SM.png', countdown:false,
     products:[['📦','Collection Box','$39.99'],['🎁','Poster Collection','$24.99'],['🃏','Booster Bundle','$19.99'],['🔖','Promo Pack','$4.99']]},
-  { label:'55 days', eyebrow:'Coming Jul 17', title:'Pitch Black Night', sub:'Mega Darkrai ex · Dark-type spotlight · 130+ cards', icon:'🌑', iconName:'Mega Darkrai ex', type:'Elite Trainer Box', countdown:false,
+  { label:'55 days', eyebrow:'Coming Jul 17', title:'Pitch Black Night', sub:'Mega Darkrai ex · Dark-type spotlight · 130+ cards', icon:'🌑', iconName:'Mega Darkrai ex', type:'Elite Trainer Box', img:'https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/CRI/CRI_091_R_EN_SM.png', cardImg:'https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/CRI/CRI_091_R_EN_SM.png', countdown:false,
     products:[['📦','Booster Display','$149.99'],['🎁','Elite Trainer Box','$44.99'],['✨','PC ETB (11pk)','$54.99'],['🃏','Booster Bundle','$24.99']]},
-  { label:'118 days', eyebrow:'Coming Sep 18', title:'30th Anniversary', sub:'All-foil · Global launch · 150+ cards · Retro artwork', icon:'🏆', iconName:'Anniversary Set', type:'Premium Collection', countdown:false,
+  { label:'118 days', eyebrow:'Coming Sep 18', title:'30th Anniversary', sub:'All-foil · Global launch · 150+ cards · Retro artwork', icon:'🏆', iconName:'Anniversary Set', type:'Premium Collection', img:'https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/CRI/CRI_090_R_EN_SM.png', cardImg:'https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/CRI/CRI_090_R_EN_SM.png', countdown:false,
     products:[['📦','Booster Display','$189.99'],['🎁','Premium Collection','$69.99'],['✨','Collector Chest','$49.99'],['🃏','Booster Bundle','$29.99']]},
-  { label:'TBD', eyebrow:'Coming Sep 2026', title:'Storm Emerald', sub:'Mega Rayquaza ex · Weather trio · 120+ cards', icon:'🐉', iconName:'Mega Rayquaza ex', type:'Elite Trainer Box', countdown:false,
+  { label:'TBD', eyebrow:'Coming Sep 2026', title:'Storm Emerald', sub:'Mega Rayquaza ex · Weather trio · 120+ cards', icon:'🐉', iconName:'Mega Rayquaza ex', type:'Elite Trainer Box', img:'https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/CRI/CRI_003_R_EN_SM.png', cardImg:'https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/CRI/CRI_003_R_EN_SM.png', countdown:false,
     products:[['📦','Booster Display','$149.99'],['🎁','Elite Trainer Box','$44.99'],['🃏','Booster Bundle','$24.99']]},
 ];
 
