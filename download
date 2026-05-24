@@ -1,0 +1,28 @@
+# ─── Discord ───────────────────────────────────────────
+# Right-click your Discord channel → Integrations → Webhooks → Copy URL
+DISCORD_WEBHOOK_RESTOCK=https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN
+DISCORD_WEBHOOK_RELEASES=https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN
+
+# ─── TCGPlayer (optional price drop alerts) ─────────────
+# Free key from https://developer.tcgplayer.com
+TCGPLAYER_PUBLIC_KEY=
+TCGPLAYER_PRIVATE_KEY=
+
+# ─── App settings ───────────────────────────────────────
+# How often to scan retailers (minutes)
+SCAN_INTERVAL_HOT=3
+SCAN_INTERVAL_STANDARD=5
+SCAN_INTERVAL_PRICES=15
+
+# Comma-separated product keywords to watch
+# Bot will only alert on products matching these terms
+WATCH_KEYWORDS=Elite Trainer Box,Booster Display,Booster Bundle,Build and Battle,Tin
+
+# Price drop threshold — alert when price drops by this % below MSRP
+PRICE_DROP_THRESHOLD=10
+
+# Timezone for release day reminders (e.g. America/New_York)
+TZ=America/New_York
+
+# Set to "true" to print all activity to console (Railway logs)
+DEBUG=false

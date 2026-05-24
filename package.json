@@ -1,0 +1,19 @@
+{
+  "name": "pokeradar-bot",
+  "version": "1.0.0",
+  "description": "Pokemon TCG restock & release monitor with Discord alerts",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "axios": "1.4.0",
+    "cheerio": "1.0.0-rc.12",
+    "node-cron": "^3.0.3",
+    "dotenv": "^16.4.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
