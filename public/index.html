@@ -412,34 +412,30 @@ async function fetchSetPrices(set, idx) {
 
   try {
     // Call via Railway proxy — server-side, no CORS/IP block
-    const res = await fetch(`/api/prices?q=${encodeURIComponent(query)}&limit=5`);
+    const res = await fetch(`/api/prices?q=${encodeURIComponent(query)}&limit=10`);
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
     const data = await res.json();
-    const hits = data?.data || [];
+    console.log('[Prices] API response:', JSON.stringify(data).slice(0, 300));
+    if (data.error) throw new Error(data.error);
 
-    // Find sealed product match
-    const hit = hits.find(h =>
-      h.name?.toLowerCase().includes('trainer') ||
-      h.name?.toLowerCase().includes('booster') ||
-      h.name?.toLowerCase().includes('display') ||
-      h.name?.toLowerCase().includes('bundle')
-    ) || hits[0];
+    const hits = data?.data || data?.results || data?.cards || [];
+    const hit  = hits[0];
+    if (!hit) throw new Error('No results returned');
 
-    if (!hit) throw new Error('No product found');
-
-    const prices = hit.prices?.raw?.near_mint || hit.prices?.raw || {};
-    const tcp    = prices.tcgplayer || {};
-    const ebay   = prices.ebay     || {};
+    const priceRaw = hit.prices?.raw || hit.prices || {};
+    const nmPrices = priceRaw.near_mint || priceRaw.nm || priceRaw;
+    const tcp      = nmPrices.tcgplayer || nmPrices.tcg || {};
+    const ebay     = nmPrices.ebay || {};
 
     renderPricePanel({
-      low:      tcp.low     || null,
-      market:   tcp.market  || null,
-      high:     tcp.high    || null,
-      avg:      tcp.market  || null,
-      ebay_7d:  ebay.avg_7d || null,
-      listings: hit.listings_count || null,
+      low:      tcp.low    || tcp.low_price  || null,
+      market:   tcp.market || tcp.mid_price  || null,
+      high:     tcp.high   || tcp.high_price || null,
+      avg:      tcp.market || null,
+      ebay_7d:  ebay.avg_7d || ebay.average_7d || null,
+      listings: hit.listings_count || hit.total_listings || null,
       trend:    'flat', trend_pct: '—',
       note:     `TCGPlayer · ${hit.set?.name || set.name}`,
-      image:    hit.image_url || null,
     }, msrp, set);
 
   } catch(e) {
@@ -543,35 +539,56 @@ function quickSearch(el, q) {
 async function doSearch(query) {
   const q = query || document.getElementById('resale-q').value.trim();
   if (!q) return;
-  document.getElementById('resale-cards').innerHTML = `<div class="r-card"><div class="loading-spin"><div class="spin-pb"></div><div class="spin-text">Fetching TCGPlayer & eBay prices…</div></div></div>`;
+  document.getElementById('resale-cards').innerHTML = `<div class="r-card"><div class="loading-spin"><div class="spin-pb"></div><div class="spin-text">Fetching prices…</div></div></div>`;
   try {
-    // Call via Railway proxy
-    const res = await fetch(`/api/prices?q=${encodeURIComponent(q)}&limit=5`);
+    const res = await fetch(`/api/prices?q=${encodeURIComponent(q)}&limit=10`);
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
     const data = await res.json();
-    const hits = data?.data || [];
-    if (!hits.length) throw new Error('No results');
 
-    // Convert API response to our render format
+    // Log raw response for debugging
+    console.log('[Resale] API response:', JSON.stringify(data).slice(0, 300));
+
+    if (data.error) throw new Error(data.error);
+
+    const hits = data?.data || data?.results || data?.cards || [];
+    if (!hits.length) {
+      // Show a meaningful message with what came back
+      document.getElementById('resale-cards').innerHTML = `
+        <div class="r-card" style="text-align:center;padding:24px;">
+          <div style="font-size:12px;color:var(--stone);font-family:'DM Mono',monospace;margin-bottom:8px;">NO RESULTS FOR "${q.toUpperCase()}"</div>
+          <div style="font-size:10px;color:var(--stone);font-family:'DM Mono',monospace;">Try: "Charizard ex" or "Pikachu"</div>
+        </div>`;
+      return;
+    }
+
     const products = hits.slice(0,3).map(h => {
-      const tcp   = h.prices?.raw?.near_mint?.tcgplayer || h.prices?.raw?.tcgplayer || {};
-      const ebay  = h.prices?.raw?.near_mint?.ebay      || h.prices?.raw?.ebay      || {};
+      // Handle different price structures the API might return
+      const priceRaw  = h.prices?.raw || h.prices || {};
+      const nmPrices  = priceRaw.near_mint || priceRaw.nm || priceRaw;
+      const tcp       = nmPrices.tcgplayer || nmPrices.tcg || {};
+      const ebay      = nmPrices.ebay || {};
       return {
-        name:        h.name || q,
+        name:        h.name || h.card_name || q,
         msrp:        null,
-        low:         tcp.low    || null,
-        avg:         tcp.market || null,
-        high:        tcp.high   || null,
-        ebay_7d:     ebay.avg_7d || null,
-        sales_count: h.listings_count || null,
+        low:         tcp.low    || tcp.low_price  || null,
+        avg:         tcp.market || tcp.mid_price  || null,
+        high:        tcp.high   || tcp.high_price || null,
+        ebay_7d:     ebay.avg_7d || ebay.average_7d || null,
+        sales_count: h.listings_count || h.total_listings || null,
         trend:       'flat', trend_pct: '—',
-        note:        h.set?.name ? `Set: ${h.set.name}` : 'TCGPlayer · eBay sold data',
-        url:         h.tcgplayer_url || null,
+        note:        h.set?.name || h.expansion || 'TCGPlayer · eBay',
+        url:         h.tcgplayer_url || h.url || null,
       };
     });
 
     renderResale(products);
   } catch(e) {
-    document.getElementById('resale-cards').innerHTML = `<div class="r-card" style="text-align:center;padding:24px;"><div style="font-size:12px;color:var(--red);font-family:'DM Mono',monospace;">${e.message.toUpperCase()}</div></div>`;
+    console.error('[Resale] Error:', e.message);
+    document.getElementById('resale-cards').innerHTML = `
+      <div class="r-card" style="text-align:center;padding:24px;">
+        <div style="font-size:12px;color:var(--red);font-family:'DM Mono',monospace;margin-bottom:8px;">COULD NOT FETCH</div>
+        <div style="font-size:10px;color:var(--stone);font-family:'DM Mono',monospace;">${e.message}</div>
+      </div>`;
   }
 }
 
