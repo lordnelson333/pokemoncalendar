@@ -21,6 +21,21 @@ db.clearExpiredAlerts();
 const PORT      = process.env.PORT || 3000;
 const HTML_FILE = path.join(__dirname, 'public', 'index.html');
 
+// ── Price proxy helper (async) ────────────────────────────────────────────────
+async function proxyPrices(q, limit, key) {
+  const apiUrl = `https://api.tcgpricelookup.com/v1/cards/search?q=${encodeURIComponent(q)}&game=pokemon&limit=${limit}`;
+  const apiRes = await fetch(apiUrl, {
+    headers: {
+      'X-API-Key':  key,
+      'User-Agent': 'PokéRadar/1.0',
+      'Accept':     'application/json',
+    },
+  });
+  const data = await apiRes.json();
+  console.log(`[API] TCGPriceLookup ${apiRes.status} for "${q}"`);
+  return { status: apiRes.status, data };
+}
+
 // ── Web server ────────────────────────────────────────────────────────────────
 const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -30,16 +45,14 @@ const server = http.createServer((req, res) => {
 
   const pathname = req.url.split('?')[0];
 
-  // ── GET /api/config — sends config to dashboard ──────────────────────────
+  // ── GET /api/config ────────────────────────────────────────────────────────
   if (req.method === 'GET' && pathname === '/api/config') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ready: !!process.env.TCGPL_API_KEY }));
     return;
   }
 
-  // ── GET /api/prices?q=... — proxy to TCG Price Lookup ─────────────────────
-  // Dashboard calls this instead of TCG Price Lookup directly
-  // Runs server-side so Railway IP doesn't matter — TCGPriceLookup allows it
+  // ── GET /api/prices?q=...&limit=... ───────────────────────────────────────
   if (req.method === 'GET' && pathname === '/api/prices') {
     const params = new URL(req.url, 'http://localhost');
     const q      = params.get('q') || '';
@@ -51,38 +64,27 @@ const server = http.createServer((req, res) => {
       res.end(JSON.stringify({ error: 'TCGPL_API_KEY not set in Railway Variables' }));
       return;
     }
-
     if (!q) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Missing query parameter q' }));
       return;
     }
 
-    try {
-      console.log(`[API] /api/prices?q=${q}`);
-      const apiUrl = `https://api.tcgpricelookup.com/v1/cards/search?q=${encodeURIComponent(q)}&game=pokemon&limit=${limit}`;
-      const apiRes = await fetch(apiUrl, {
-        headers: {
-          'X-API-Key':  key,
-          'User-Agent': 'PokéRadar/1.0',
-          'Accept':     'application/json',
-        },
+    console.log(`[API] /api/prices?q=${q}`);
+    proxyPrices(q, limit, key)
+      .then(({ status, data }) => {
+        res.writeHead(status, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(data));
+      })
+      .catch(err => {
+        console.error('[API] Error:', err.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
       });
-
-      const data = await apiRes.json();
-      console.log(`[API] TCGPriceLookup responded ${apiRes.status} for "${q}"`);
-
-      res.writeHead(apiRes.status, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(data));
-    } catch (err) {
-      console.error('[API] Price proxy error:', err.message);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: err.message }));
-    }
     return;
   }
 
-  // ── Serve dashboard HTML ───────────────────────────────────────────────────
+  // ── Serve dashboard ────────────────────────────────────────────────────────
   fs.readFile(HTML_FILE, (err, data) => {
     if (err) { res.writeHead(500); res.end('Dashboard not found'); return; }
     res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -95,13 +97,12 @@ server.listen(PORT, () => {
   if (!process.env.TCGPL_API_KEY) console.warn('[Web] ⚠️  TCGPL_API_KEY not set in Railway Variables');
 });
 
-// ── Calendar cron — daily at 9 AM ─────────────────────────────────────────────
+// ── Crons ─────────────────────────────────────────────────────────────────────
 cron.schedule('0 9 * * *', async () => {
   console.log('[Cron] Daily calendar check…');
   await calendar.checkReleases();
 });
 
-// ── Heartbeat ─────────────────────────────────────────────────────────────────
 cron.schedule('*/5 * * * *', () => {
   console.log(`[Heartbeat] ${new Date().toISOString()} ✓`);
 });
