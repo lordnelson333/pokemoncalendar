@@ -403,52 +403,78 @@ function closePanel() {
   renderSets();
 }
 
+// Pricing via /api/prices proxy on Railway server
+
 async function fetchSetPrices(set, idx) {
   const msrp = set.msrp[activeProd];
   const prodLabel = PROD_LABELS[activeProd];
+  const query = `${set.short} ${prodLabel}`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514', max_tokens:800,
-        tools:[{type:'web_search_20250305',name:'web_search'}],
-        system:`Pokemon TCG sealed product pricing expert. Search TCGPlayer for current prices. Return ONLY valid JSON no markdown:
-{"low":0,"avg":0,"high":0,"market":0,"listings":0,"trend":"up|down|flat","trend_pct":"string","last_sale":0,"note":"string"}
-Use real current TCGPlayer data. All prices in USD numbers.`,
-        messages:[{role:'user',content:`Current TCGPlayer price for: Pokemon TCG ${set.name} ${prodLabel}. Find lowest listing, market price, high price.`}]
-      })
-    });
+    // Call via Railway proxy — server-side, no CORS/IP block
+    const res = await fetch(`/api/prices?q=${encodeURIComponent(query)}&limit=5`);
     const data = await res.json();
-    const text = data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
-    const json = JSON.parse(text.replace(/```json|```/g,'').trim());
-    renderPricePanel(json, msrp, set);
+    const hits = data?.data || [];
+
+    // Find sealed product match
+    const hit = hits.find(h =>
+      h.name?.toLowerCase().includes('trainer') ||
+      h.name?.toLowerCase().includes('booster') ||
+      h.name?.toLowerCase().includes('display') ||
+      h.name?.toLowerCase().includes('bundle')
+    ) || hits[0];
+
+    if (!hit) throw new Error('No product found');
+
+    const prices = hit.prices?.raw?.near_mint || hit.prices?.raw || {};
+    const tcp    = prices.tcgplayer || {};
+    const ebay   = prices.ebay     || {};
+
+    renderPricePanel({
+      low:      tcp.low     || null,
+      market:   tcp.market  || null,
+      high:     tcp.high    || null,
+      avg:      tcp.market  || null,
+      ebay_7d:  ebay.avg_7d || null,
+      listings: hit.listings_count || null,
+      trend:    'flat', trend_pct: '—',
+      note:     `TCGPlayer · ${hit.set?.name || set.name}`,
+      image:    hit.image_url || null,
+    }, msrp, set);
+
   } catch(e) {
-    // Show placeholder prices if API fails
+    console.warn('Price fetch failed:', e.message);
     const msrpV = msrp || 44.99;
     renderPricePanel({
-      low: +(msrpV*0.85).toFixed(2), avg: +(msrpV*1.05).toFixed(2),
-      high: +(msrpV*1.35).toFixed(2), market: +(msrpV*1.02).toFixed(2),
-      listings: 42, trend:'up', trend_pct:'+8%', note:'TCGPlayer data unavailable'
+      low: +(msrpV*0.88).toFixed(2), market: +(msrpV*1.02).toFixed(2),
+      high: +(msrpV*1.3).toFixed(2), avg: +(msrpV*1.02).toFixed(2),
+      listings: null, trend:'flat', trend_pct:'—',
+      note: 'Live data unavailable — showing estimates'
     }, msrp, set);
   }
 }
 
 function renderPricePanel(p, msrp, set) {
-  const diffPct = msrp ? Math.round(((p.avg - msrp)/msrp)*100) : null;
-  const eq = encodeURIComponent(`Pokemon TCG ${set.name} ${PROD_LABELS[activeProd]}`);
+  const diffPct = msrp && p.market ? Math.round(((p.market - msrp)/msrp)*100) : null;
+  const eq = encodeURIComponent(`${set.short} ${PROD_LABELS[activeProd]}`);
+  const ebayRow = p.ebay_7d ? `
+    <div style="background:var(--s2);border:1px solid var(--hl);border-radius:10px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--stone);">eBay Avg (7d sold)</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--blue);">$${p.ebay_7d.toFixed(2)}</div>
+    </div>` : '';
   document.getElementById('pp-body').innerHTML = `
     <div class="pp-grid">
-      <div class="pp-cell"><div class="pp-cell-label">Low</div><div class="pp-cell-val low">$${p.low||'—'}</div></div>
-      <div class="pp-cell"><div class="pp-cell-label">Market</div><div class="pp-cell-val avg">$${p.market||p.avg||'—'}</div></div>
-      <div class="pp-cell"><div class="pp-cell-label">High</div><div class="pp-cell-val high">$${p.high||'—'}</div></div>
+      <div class="pp-cell"><div class="pp-cell-label">Low</div><div class="pp-cell-val low">$${p.low?.toFixed(2)||'—'}</div></div>
+      <div class="pp-cell"><div class="pp-cell-label">Market</div><div class="pp-cell-val avg">$${p.market?.toFixed(2)||'—'}</div></div>
+      <div class="pp-cell"><div class="pp-cell-label">High</div><div class="pp-cell-val high">$${p.high?.toFixed(2)||'—'}</div></div>
     </div>
+    ${ebayRow}
     <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:11px;font-family:'DM Mono',monospace;color:var(--stone);">
-      <span>${p.listings||'?'} active listings</span>
-      ${msrp?`<span style="color:${diffPct>0?'var(--red)':'var(--green)'};">${diffPct>0?'+':''}${diffPct}% vs MSRP ($${msrp})</span>`:''}
+      <span>${p.listings ? p.listings+' listings' : 'TCGPlayer'}</span>
+      ${diffPct!==null?`<span style="color:${diffPct>0?'var(--red)':'var(--green)'};">${diffPct>0?'+':''}${diffPct}% vs MSRP $${msrp}</span>`:''}
     </div>
-    <div style="font-size:10px;color:var(--stone);font-family:'DM Mono',monospace;margin-bottom:14px;">${p.note||'TCGPlayer sealed products'}</div>
-    <a href="https://www.tcgplayer.com/search/pokemon/sealed-products?q=${eq}&view=grid" target="_blank" class="ebay-link">View on TCGPlayer →</a>`;
+    <div style="font-size:10px;color:var(--stone);font-family:'DM Mono',monospace;margin-bottom:14px;">${p.note||'TCGPlayer · eBay sold data'}</div>
+    <a href="https://www.tcgplayer.com/search/pokemon/sealed-products?q=${encodeURIComponent(eq)}&view=grid" target="_blank" class="ebay-link">View on TCGPlayer →</a>`;
 }
 
 // ── CALENDAR TAB ─────────────────────────────────────────────────────────────
@@ -517,25 +543,35 @@ function quickSearch(el, q) {
 async function doSearch(query) {
   const q = query || document.getElementById('resale-q').value.trim();
   if (!q) return;
-  document.getElementById('resale-cards').innerHTML = `<div class="r-card"><div class="loading-spin"><div class="spin-pb"></div><div class="spin-text">Searching eBay sold listings…</div></div></div>`;
+  document.getElementById('resale-cards').innerHTML = `<div class="r-card"><div class="loading-spin"><div class="spin-pb"></div><div class="spin-text">Fetching TCGPlayer & eBay prices…</div></div></div>`;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514', max_tokens:1000,
-        tools:[{type:'web_search_20250305',name:'web_search'}],
-        system:`Pokemon TCG resale expert. Search eBay sold listings. Return ONLY valid JSON no markdown:
-{"products":[{"name":"string","msrp":0,"low":0,"avg":0,"high":0,"trend":"up|down|flat","trend_pct":"string","sales_count":0,"note":"string"}]}
-1-3 products max. Real eBay sold data.`,
-        messages:[{role:'user',content:`eBay sold listings price: Pokemon TCG ${q}`}]
-      })
-    });
+    // Call via Railway proxy
+    const res = await fetch(`/api/prices?q=${encodeURIComponent(q)}&limit=5`);
     const data = await res.json();
-    const text = data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
-    const json = JSON.parse(text.replace(/```json|```/g,'').trim());
-    renderResale(json.products);
+    const hits = data?.data || [];
+    if (!hits.length) throw new Error('No results');
+
+    // Convert API response to our render format
+    const products = hits.slice(0,3).map(h => {
+      const tcp   = h.prices?.raw?.near_mint?.tcgplayer || h.prices?.raw?.tcgplayer || {};
+      const ebay  = h.prices?.raw?.near_mint?.ebay      || h.prices?.raw?.ebay      || {};
+      return {
+        name:        h.name || q,
+        msrp:        null,
+        low:         tcp.low    || null,
+        avg:         tcp.market || null,
+        high:        tcp.high   || null,
+        ebay_7d:     ebay.avg_7d || null,
+        sales_count: h.listings_count || null,
+        trend:       'flat', trend_pct: '—',
+        note:        h.set?.name ? `Set: ${h.set.name}` : 'TCGPlayer · eBay sold data',
+        url:         h.tcgplayer_url || null,
+      };
+    });
+
+    renderResale(products);
   } catch(e) {
-    document.getElementById('resale-cards').innerHTML = `<div class="r-card" style="text-align:center;padding:24px;"><div style="font-size:12px;color:var(--red);font-family:'DM Mono',monospace;">COULD NOT FETCH — TRY AGAIN</div></div>`;
+    document.getElementById('resale-cards').innerHTML = `<div class="r-card" style="text-align:center;padding:24px;"><div style="font-size:12px;color:var(--red);font-family:'DM Mono',monospace;">${e.message.toUpperCase()}</div></div>`;
   }
 }
 
@@ -545,19 +581,23 @@ function renderResale(products) {
     const tc = p.trend==='up'?'up':p.trend==='down'?'down':'flat';
     const tt = p.trend==='up'?'▲ '+p.trend_pct:p.trend==='down'?'▼ '+p.trend_pct:'— STABLE';
     const eq = encodeURIComponent('Pokemon TCG '+p.name);
+    const ebayCell = p.ebay_7d ? `<div class="r-p-cell"><div class="r-p-label">eBay 7d</div><div class="r-p-val" style="color:var(--blue);">$${p.ebay_7d.toFixed(0)}</div></div>` : '';
+    const gridCols = p.ebay_7d ? 'grid-template-columns:1fr 1fr 1fr 1fr' : 'grid-template-columns:1fr 1fr 1fr';
+    const tcgUrl = p.url || `https://www.tcgplayer.com/search/pokemon/sealed-products?q=${eq}`;
     return `<div class="r-card">
       <div class="r-card-head">
-        <div><div class="r-card-name">${p.name}</div><div class="r-card-msrp">MSRP $${p.msrp?.toFixed(2)||'—'} · ${p.sales_count||'?'} recent sales</div></div>
+        <div><div class="r-card-name">${p.name}</div><div class="r-card-msrp">${p.sales_count ? p.sales_count+' listings' : 'TCGPlayer'} · ${p.note||''}</div></div>
         <div class="r-trend ${tc}">${tt}</div>
       </div>
-      <div class="r-prices">
+      <div class="r-prices" style="${gridCols}">
         <div class="r-p-cell"><div class="r-p-label">Low</div><div class="r-p-val low">$${p.low?.toFixed(0)||'—'}</div></div>
-        <div class="r-p-cell"><div class="r-p-label">Avg Sold</div><div class="r-p-val avg">$${p.avg?.toFixed(0)||'—'}</div></div>
+        <div class="r-p-cell"><div class="r-p-label">Market</div><div class="r-p-val avg">$${p.avg?.toFixed(0)||'—'}</div></div>
         <div class="r-p-cell"><div class="r-p-label">High</div><div class="r-p-val high">$${p.high?.toFixed(0)||'—'}</div></div>
+        ${ebayCell}
       </div>
       <div class="r-footer">
-        <div class="r-note">${p.note||'eBay sold listings'}</div>
-        <a href="https://www.ebay.com/sch/i.html?_nkw=${eq}&LH_Sold=1&LH_Complete=1" target="_blank" class="r-ebay-btn">eBay →</a>
+        <div class="r-note">Source: TCGPlayer & eBay</div>
+        <a href="${tcgUrl}" target="_blank" class="r-ebay-btn">TCGPlayer →</a>
       </div>
     </div>`;
   }).join('');
