@@ -274,15 +274,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-
   <div class="tab-content" id="tab-resale">
     <div class="sec-label">eBay Sold Prices</div>
     <div class="search-bar">
-      <input class="search-input" id="resale-q" placeholder="Search any TCG product…" />
+      <input class="search-input" id="resale-q" placeholder="Search any Pokemon card…" />
       <button class="search-btn" onclick="doSearch()">Search</button>
     </div>
     <div class="quick-row">
-      <div class="q-chip" onclick="quickSearch(this,'Chaos Rising ETB')">Chaos Rising ETB</div>
-      <div class="q-chip" onclick="quickSearch(this,'Chaos Rising Booster Box')">Booster Box</div>
-      <div class="q-chip" onclick="quickSearch(this,'Perfect Order ETB')">Perfect Order ETB</div>
-      <div class="q-chip" onclick="quickSearch(this,'Ascended Heroes ETB')">Ascended Heroes</div>
-      <div class="q-chip" onclick="quickSearch(this,'Pitch Black Night ETB')">Pitch Black ETB</div>
+      <div class="q-chip" onclick="quickSearch(this,'Mega Greninja ex')">Mega Greninja ex</div>
+      <div class="q-chip" onclick="quickSearch(this,'Charizard ex')">Charizard ex</div>
+      <div class="q-chip" onclick="quickSearch(this,'Pikachu ex')">Pikachu ex</div>
+      <div class="q-chip" onclick="quickSearch(this,'Mewtwo ex')">Mewtwo ex</div>
+      <div class="q-chip" onclick="quickSearch(this,'Mega Lucario ex')">Mega Lucario ex</div>
     </div>
     <div class="resale-cards" id="resale-cards">
       <div class="r-card" style="text-align:center;padding:32px 16px;">
@@ -541,7 +541,10 @@ async function doSearch(query) {
   if (!q) return;
   document.getElementById('resale-cards').innerHTML = `<div class="r-card"><div class="loading-spin"><div class="spin-pb"></div><div class="spin-text">Fetching prices…</div></div></div>`;
   try {
-    const res = await fetch(`/api/prices?q=${encodeURIComponent(q)}&limit=10`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    const res = await fetch(`/api/prices?q=${encodeURIComponent(q)}&limit=10`, { signal: controller.signal });
+    clearTimeout(timeout);
     if (!res.ok) throw new Error(`Server error ${res.status}`);
     const data = await res.json();
 
