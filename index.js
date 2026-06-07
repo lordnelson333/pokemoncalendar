@@ -73,6 +73,7 @@ const server = http.createServer((req, res) => {
     console.log(`[API] /api/prices?q=${q}`);
     proxyPrices(q, limit, key)
       .then(({ status, data }) => {
+        console.log(`[API] Response status: ${status}, data keys: ${Object.keys(data).join(', ')}, count: ${data?.data?.length ?? 'none'}`);
         res.writeHead(status, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(data));
       })
