@@ -546,7 +546,7 @@ async function doSearch(query) {
   try {
     // Call pokemontcg.io from the browser — images CDN is public, no CORS issues
     const res = await fetch(
-      `https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(q)}&pageSize=12&orderBy=-set.releaseDate&select=id,name,images,set,number,rarity,tcgplayer`,
+      `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(q)}"&pageSize=12&orderBy=-set.releaseDate&select=id,name,images,set,number,rarity,tcgplayer`,
       { headers: { 'Accept': 'application/json' } }
     );
 
