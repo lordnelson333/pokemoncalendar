@@ -366,7 +366,7 @@ function renderSets() {
     const days = daysUntil(s.date);
     const meta = days > 0 ? `Releases in ${days}d` : days === 0 ? 'Released today' : 'Released';
     // Simulated market prices (±15% of MSRP) — real data loads on tap
-    const market = +(msrp * (0.9 + Math.random() * 0.25)).toFixed(2);
+    const market = parseFloat((msrp * (0.9 + Math.random() * 0.25)).toFixed(2));
     const diff = Math.round(((market - msrp) / msrp) * 100);
     const badgeCls = diff > 5 ? 'badge-above' : diff < -5 ? 'badge-below' : 'badge-msrp';
     const badgeTxt = diff > 0 ? `+${diff}% MSRP` : diff < 0 ? `${diff}% MSRP` : 'AT MSRP';
@@ -378,7 +378,7 @@ function renderSets() {
         <span class="set-badge ${badgeCls}">${badgeTxt}</span>
       </div>
       <div class="set-price-col">
-        <div class="set-price">$${market}</div>
+        <div class="set-price">$${market.toFixed(2)}</div>
         <div class="set-msrp">MSRP $${msrp.toFixed(2)}</div>
       </div>
     </div>`;
@@ -546,7 +546,7 @@ async function doSearch(query) {
   try {
     // Call pokemontcg.io from the browser — images CDN is public, no CORS issues
     const res = await fetch(
-      `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(q)}"&pageSize=12&orderBy=-set.releaseDate&select=id,name,images,set,number,rarity,tcgplayer`,
+      `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(q)}"&pageSize=24&select=id,name,images,set,number,rarity,tcgplayer`,
       { headers: { 'Accept': 'application/json' } }
     );
 
