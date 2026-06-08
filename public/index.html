@@ -279,6 +279,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-
     <div class="q-chip" onclick="quickCard(this,'Umbreon ex')">Umbreon ex</div>
     <div class="q-chip" onclick="quickCard(this,'Rayquaza ex')">Rayquaza ex</div>
   </div>
+  <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--stone);margin-bottom:8px;">Filter by type</div>
+  <div class="quick-row" style="margin-bottom:16px;">
+    <div class="q-chip" onclick="filterCard(this,'151')">151</div>
+    <div class="q-chip" onclick="filterCard(this,'Promo')">Promo</div>
+    <div class="q-chip" onclick="filterCard(this,'Art Rare')">Art Rare</div>
+    <div class="q-chip" onclick="filterCard(this,'Illustration Rare')">Illus Rare</div>
+    <div class="q-chip" onclick="filterCard(this,'Special Illustration Rare')">Special IR</div>
+    <div class="q-chip" onclick="filterCard(this,'Holo Rare')">Holo</div>
+    <div class="q-chip" onclick="filterCard(this,'Full Art')">Full Art</div>
+    <div class="q-chip" onclick="filterCard(this,'Rainbow Rare')">Rainbow</div>
+    <div class="q-chip" onclick="filterCard(this,'Gold')">Gold</div>
+    <div class="q-chip" onclick="filterCard(this,'Shiny')">Shiny</div>
+  </div>
   <div id="card-grid">
     <div class="msg">Search a card above · Tap to buy on TCGPlayer</div>
   </div>
@@ -493,6 +506,41 @@ function quickCard(el, q) {
   doCardSearch();
 }
 
+function filterCard(el, rarity) {
+  document.querySelectorAll('.q-chip').forEach(function(c){c.classList.remove('sel');});
+  el.classList.add('sel');
+  // Search by rarity/set using pokemontcg.io query syntax
+  var grid = document.getElementById('card-grid');
+  grid.innerHTML = '<div class="spin-wrap"><div class="spin-pb"></div><div style="font-size:12px;color:var(--mute);">Searching ' + rarity + '...</div></div>';
+
+  var query;
+  if (rarity === '151') {
+    query = 'https://api.pokemontcg.io/v2/cards?q=set.id:sv3pt5&pageSize=50&orderBy=-number';
+  } else if (rarity === 'Promo') {
+    query = 'https://api.pokemontcg.io/v2/cards?q=set.series:Scarlet%20%26%20Violet%20Promos&pageSize=50&orderBy=-number';
+  } else {
+    query = 'https://api.pokemontcg.io/v2/cards?q=rarity:"' + encodeURIComponent(rarity) + '"&pageSize=50&orderBy=-set.releaseDate';
+  }
+
+  fetch(query, {
+    headers: {'Accept':'application/json','X-Api-Key':'64958068-ebbb-49b2-bf3f-2daa61478181'}
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    allCards = data.data || [];
+    cardPage = 0;
+    grid.innerHTML = '';
+    if (!allCards.length) {
+      grid.innerHTML = '<div class="msg">No results for "' + rarity + '"</div>';
+      return;
+    }
+    appendCardPage();
+  })
+  .catch(function(e){
+    grid.innerHTML = '<div class="msg" style="color:var(--red);">Error: ' + e.message + '</div>';
+  });
+}
+
 function doCardSearch() {
   var q = document.getElementById('card-q').value.trim();
   if (!q) return;
@@ -622,9 +670,9 @@ renderSets();
 </script>
 
 <!-- Hidden YouTube iframe -->
-<iframe id="yt-player" 
-  src="https://www.youtube.com/embed/IfBHWX38lys?enablejsapi=1&autoplay=0&loop=1&playlist=IfBHWX38lys&controls=0&mute=0"
-  style="display:none;" allow="autoplay" title="Pokemon Lofi">
+<iframe id="yt-player"
+  src="https://www.youtube.com/embed/videoseries?list=PLZPHD7rCglOI-NWoebhuc43sIct8_j5Xt&enablejsapi=1&autoplay=0&controls=0&mute=0"
+  style="display:none;" allow="autoplay" title="Pokemon Lofi Playlist">
 </iframe>
 
 
@@ -643,7 +691,23 @@ document.head.appendChild(tag);
 function onYouTubeIframeAPIReady() {
   ytPlayer = new YT.Player('yt-player', {
     events: {
-      onReady: function() { ytReady = true; }
+      onReady: function() {
+        ytReady = true;
+        // Auto-play on first scroll
+        window.addEventListener('scroll', function startOnScroll() {
+          if (ytReady && !isPlaying) {
+            toggleMusic();
+          }
+          window.removeEventListener('scroll', startOnScroll);
+        }, { once: true });
+        // Also trigger on first touch/tap anywhere
+        document.addEventListener('touchstart', function startOnTouch() {
+          if (ytReady && !isPlaying) {
+            toggleMusic();
+          }
+          document.removeEventListener('touchstart', startOnTouch);
+        }, { once: true, passive: true });
+      }
     }
   });
 }
