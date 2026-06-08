@@ -316,7 +316,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-
 <nav class="bottom-nav">
   <div class="nav-t active" data-tab="prices"><div class="nav-icon">💰</div><div class="nav-label">Prices</div></div>
   <div class="nav-t" data-tab="calendar"><div class="nav-icon">📅</div><div class="nav-label">Calendar</div></div>
-  <div class="nav-t" data-tab="resale"><div class="nav-icon">📊</div><div class="nav-label">Resale</div></div>
+  <div class="nav-t" data-tab="resale"><div class="nav-icon">🃏</div><div class="nav-label">Cards</div></div>
   <div class="nav-t" data-tab="settings"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
 </nav>
 
@@ -539,87 +539,93 @@ function quickSearch(el, q) {
 async function doSearch(query) {
   const q = query || document.getElementById('resale-q').value.trim();
   if (!q) return;
-  document.getElementById('resale-cards').innerHTML = `<div class="r-card"><div class="loading-spin"><div class="spin-pb"></div><div class="spin-text">Fetching prices…</div></div></div>`;
+
+  const container = document.getElementById('resale-cards');
+  container.innerHTML = `<div style="text-align:center;padding:40px 16px;"><div class="loading-spin"><div class="spin-pb"></div><div class="spin-text">Searching cards…</div></div></div>`;
+
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-    const res = await fetch(`/api/prices?q=${encodeURIComponent(q)}&limit=10`, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    // Call pokemontcg.io from the browser — images CDN is public, no CORS issues
+    const res = await fetch(
+      `https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(q)}&pageSize=12&orderBy=-set.releaseDate&select=id,name,images,set,number,rarity,tcgplayer`,
+      { headers: { 'Accept': 'application/json' } }
+    );
+
+    if (!res.ok) throw new Error(`${res.status}`);
     const data = await res.json();
+    const cards = data?.data || [];
 
-    // Log raw response for debugging
-    console.log('[Resale] API response:', JSON.stringify(data).slice(0, 300));
-
-    if (data.error) throw new Error(data.error);
-
-    const hits = data?.data || data?.results || data?.cards || [];
-    if (!hits.length) {
-      // Show a meaningful message with what came back
-      document.getElementById('resale-cards').innerHTML = `
-        <div class="r-card" style="text-align:center;padding:24px;">
-          <div style="font-size:12px;color:var(--stone);font-family:'DM Mono',monospace;margin-bottom:8px;">NO RESULTS FOR "${q.toUpperCase()}"</div>
-          <div style="font-size:10px;color:var(--stone);font-family:'DM Mono',monospace;">Try: "Charizard ex" or "Pikachu"</div>
-        </div>`;
+    if (!cards.length) {
+      container.innerHTML = `<div style="text-align:center;padding:40px 16px;">
+        <div style="font-size:12px;color:var(--stone);font-family:'DM Mono',monospace;margin-bottom:6px;">NO RESULTS FOR "${q.toUpperCase()}"</div>
+        <div style="font-size:10px;color:var(--stone);font-family:'DM Mono',monospace;">Try: "Charizard ex" or "Mewtwo"</div>
+      </div>`;
       return;
     }
 
-    const products = hits.slice(0,3).map(h => {
-      // Handle different price structures the API might return
-      const priceRaw  = h.prices?.raw || h.prices || {};
-      const nmPrices  = priceRaw.near_mint || priceRaw.nm || priceRaw;
-      const tcp       = nmPrices.tcgplayer || nmPrices.tcg || {};
-      const ebay      = nmPrices.ebay || {};
-      return {
-        name:        h.name || h.card_name || q,
-        msrp:        null,
-        low:         tcp.low    || tcp.low_price  || null,
-        avg:         tcp.market || tcp.mid_price  || null,
-        high:        tcp.high   || tcp.high_price || null,
-        ebay_7d:     ebay.avg_7d || ebay.average_7d || null,
-        sales_count: h.listings_count || h.total_listings || null,
-        trend:       'flat', trend_pct: '—',
-        note:        h.set?.name || h.expansion || 'TCGPlayer · eBay',
-        url:         h.tcgplayer_url || h.url || null,
-      };
-    });
-
-    renderResale(products);
+    renderCards(cards);
   } catch(e) {
-    console.error('[Resale] Error:', e.message);
-    document.getElementById('resale-cards').innerHTML = `
-      <div class="r-card" style="text-align:center;padding:24px;">
-        <div style="font-size:12px;color:var(--red);font-family:'DM Mono',monospace;margin-bottom:8px;">COULD NOT FETCH</div>
-        <div style="font-size:10px;color:var(--stone);font-family:'DM Mono',monospace;">${e.message}</div>
-      </div>`;
+    console.error('[Search]', e.message);
+    container.innerHTML = `<div style="text-align:center;padding:40px 16px;">
+      <div style="font-size:12px;color:var(--red);font-family:'DM Mono',monospace;margin-bottom:6px;">COULD NOT FETCH</div>
+      <div style="font-size:10px;color:var(--stone);font-family:'DM Mono',monospace;">${e.message}</div>
+    </div>`;
   }
 }
 
-function renderResale(products) {
-  if (!products?.length) { document.getElementById('resale-cards').innerHTML=`<div class="r-card" style="text-align:center;padding:24px;"><div style="font-size:12px;color:var(--stone);font-family:'DM Mono',monospace;">NO LISTINGS FOUND</div></div>`; return; }
-  document.getElementById('resale-cards').innerHTML = products.map(p => {
-    const tc = p.trend==='up'?'up':p.trend==='down'?'down':'flat';
-    const tt = p.trend==='up'?'▲ '+p.trend_pct:p.trend==='down'?'▼ '+p.trend_pct:'— STABLE';
-    const eq = encodeURIComponent('Pokemon TCG '+p.name);
-    const ebayCell = p.ebay_7d ? `<div class="r-p-cell"><div class="r-p-label">eBay 7d</div><div class="r-p-val" style="color:var(--blue);">$${p.ebay_7d.toFixed(0)}</div></div>` : '';
-    const gridCols = p.ebay_7d ? 'grid-template-columns:1fr 1fr 1fr 1fr' : 'grid-template-columns:1fr 1fr 1fr';
-    const tcgUrl = p.url || `https://www.tcgplayer.com/search/pokemon/sealed-products?q=${eq}`;
-    return `<div class="r-card">
-      <div class="r-card-head">
-        <div><div class="r-card-name">${p.name}</div><div class="r-card-msrp">${p.sales_count ? p.sales_count+' listings' : 'TCGPlayer'} · ${p.note||''}</div></div>
-        <div class="r-trend ${tc}">${tt}</div>
+function renderCards(cards) {
+  const container = document.getElementById('resale-cards');
+
+  // Grid layout — 2 columns of cards
+  container.style.display = 'grid';
+  container.style.gridTemplateColumns = '1fr 1fr';
+  container.style.gap = '10px';
+  container.style.padding = '4px 0';
+
+  container.innerHTML = cards.map(card => {
+    const img    = card.images?.small || card.images?.large || '';
+    const setName = card.set?.name || '';
+    const rarity  = card.rarity || '';
+    const num     = card.number ? `#${card.number}` : '';
+    const tcgUrl  = card.tcgplayer?.url || `https://www.tcgplayer.com/search/pokemon/product?q=${encodeURIComponent(card.name)}`;
+    const market  = card.tcgplayer?.prices?.holofoil?.market
+                 || card.tcgplayer?.prices?.normal?.market
+                 || card.tcgplayer?.prices?.reverseHolofoil?.market
+                 || null;
+
+    return `
+    <a href="${tcgUrl}" target="_blank" style="text-decoration:none;display:block;">
+      <div style="
+        background:var(--s1);
+        border:1px solid var(--hl);
+        border-radius:14px;
+        overflow:hidden;
+        transition:border-color 0.2s, transform 0.15s;
+        cursor:pointer;
+      " onmouseenter="this.style.borderColor='rgba(255,216,77,0.4)';this.style.transform='scale(1.02)'"
+         onmouseleave="this.style.borderColor='var(--hl)';this.style.transform='scale(1)'"
+         ontouchstart="this.style.borderColor='rgba(255,216,77,0.4)'"
+         ontouchend="this.style.borderColor='var(--hl)'">
+
+        <!-- Card image -->
+        <div style="background:var(--s2);aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          ${img
+            ? `<img src="${img}" alt="${card.name}" style="width:100%;height:100%;object-fit:contain;" loading="lazy">`
+            : `<div style="font-size:32px;">🃏</div>`
+          }
+        </div>
+
+        <!-- Card info -->
+        <div style="padding:10px 10px 12px;">
+          <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${card.name}</div>
+          <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--stone);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${setName} ${num}</div>
+          ${market
+            ? `<div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);line-height:1;">$${market.toFixed(2)}</div>
+               <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--stone);">TCGPlayer market</div>`
+            : `<div style="font-size:10px;font-weight:700;color:var(--blue);font-family:'DM Mono',monospace;">VIEW ON TCGPLAYER →</div>`
+          }
+        </div>
       </div>
-      <div class="r-prices" style="${gridCols}">
-        <div class="r-p-cell"><div class="r-p-label">Low</div><div class="r-p-val low">$${p.low?.toFixed(0)||'—'}</div></div>
-        <div class="r-p-cell"><div class="r-p-label">Market</div><div class="r-p-val avg">$${p.avg?.toFixed(0)||'—'}</div></div>
-        <div class="r-p-cell"><div class="r-p-label">High</div><div class="r-p-val high">$${p.high?.toFixed(0)||'—'}</div></div>
-        ${ebayCell}
-      </div>
-      <div class="r-footer">
-        <div class="r-note">Source: TCGPlayer & eBay</div>
-        <a href="${tcgUrl}" target="_blank" class="r-ebay-btn">TCGPlayer →</a>
-      </div>
-    </div>`;
+    </a>`;
   }).join('');
 }
 
