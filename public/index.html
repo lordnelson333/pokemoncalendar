@@ -677,31 +677,51 @@ renderSets();
 var isPlaying = false;
 var audio = null;
 
-function toggleMusic() {
-  // Create audio element on first tap (required by iOS Safari)
-  if (!audio) {
-    audio = new Audio('/confident-glow.mp3');
-    audio.loop = true;
-    audio.volume = 0.6;
-  }
+function initAudio() {
+  if (audio) return;
+  audio = new Audio('/confident-glow.mp3');
+  audio.loop = true;
+  audio.volume = 0.6;
+  audio.play().then(function() {
+    isPlaying = true;
+    document.getElementById('music-icon').textContent = '❚❚';
+    document.getElementById('music-label').textContent = '♪ MUSIC';
+    animateBars();
+  }).catch(function(e) {
+    console.warn('Autoplay blocked:', e);
+  });
+}
 
+// Start on very first tap anywhere on the page
+document.addEventListener('touchend', function firstTouch() {
+  initAudio();
+  document.removeEventListener('touchend', firstTouch);
+}, { passive: true });
+
+document.addEventListener('click', function firstClick() {
+  initAudio();
+  document.removeEventListener('click', firstClick);
+});
+
+function toggleMusic() {
+  if (!audio) {
+    initAudio();
+    return;
+  }
   if (isPlaying) {
     audio.pause();
     isPlaying = false;
     document.getElementById('music-icon').textContent = '▶';
     document.getElementById('music-label').textContent = 'MUSIC';
   } else {
-    var playPromise = audio.play();
-    if (playPromise !== undefined) {
-      playPromise.then(function() {
-        isPlaying = true;
-        document.getElementById('music-icon').textContent = '❚❚';
-        document.getElementById('music-label').textContent = '♪ MUSIC';
-        animateBars();
-      }).catch(function(e) {
-        console.warn('Play failed:', e);
-      });
-    }
+    audio.play().then(function() {
+      isPlaying = true;
+      document.getElementById('music-icon').textContent = '❚❚';
+      document.getElementById('music-label').textContent = '♪ MUSIC';
+      animateBars();
+    }).catch(function(e) {
+      console.warn('Play failed:', e);
+    });
   }
 }
 
