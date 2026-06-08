@@ -193,6 +193,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-
 .nav-t.active .nav-icon{transform:scale(1.12);filter:drop-shadow(0 0 5px rgba(255,255,255,0.3));}
 .nav-t.active::after{content:'';position:absolute;top:0;left:25%;right:25%;height:2px;background:var(--gold);}
 .nav-badge{position:absolute;top:5px;right:calc(50% - 18px);background:var(--red);color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:var(--r);padding:0 4px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--bg);}
+
+/* Pokeball nav icon */
+.nav-pb-icon {
+  width:24px;height:24px;border-radius:50%;
+  background:linear-gradient(180deg,#e83030 50%,#fff 50%);
+  border:2px solid rgba(255,255,255,0.8);
+  position:relative;flex-shrink:0;
+  box-shadow:0 0 8px rgba(232,48,48,0.4);
+  margin:0 auto 2px;
+}
+.nav-pb-icon::before{content:'';position:absolute;top:50%;left:0;right:0;height:2px;background:rgba(255,255,255,0.85);transform:translateY(-50%);}
+.nav-pb-icon::after{content:'';position:absolute;top:50%;left:50%;width:7px;height:7px;background:#fff;border:1.5px solid rgba(255,255,255,0.85);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 1.5px rgba(8,8,16,0.9);}
+.nav-t.active .nav-pb-icon{box-shadow:0 0 12px rgba(232,48,48,0.7);}
 </style>
 </head>
 <body>
@@ -209,13 +222,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-
 
   <!-- ══ PRICES ══ -->
   <div class="tab-content active" id="tab-prices">
-    <div class="sec-label">Market Prices</div>
+    <div class="sec-label">Sealed Products</div>
 
     <!-- Product type pills -->
     <div class="prod-pills">
       <div class="prod-pill active" onclick="setProd(this,'etb')">Elite Trainer Box</div>
       <div class="prod-pill" onclick="setProd(this,'display')">Booster Display</div>
       <div class="prod-pill" onclick="setProd(this,'bundle')">Booster Bundle</div>
+      <div class="prod-pill" onclick="setProd(this,'tin')">Tin</div>
+      <div class="prod-pill" onclick="setProd(this,'collection')">Collection Box</div>
       <div class="prod-pill" onclick="setProd(this,'pack')">Booster Pack</div>
     </div>
 
@@ -314,37 +329,65 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
-  <div class="nav-t active" data-tab="prices"><div class="nav-icon">💰</div><div class="nav-label">Prices</div></div>
+  <div class="nav-t active" data-tab="prices"><div class="nav-icon">📦</div><div class="nav-label">Products</div></div>
   <div class="nav-t" data-tab="calendar"><div class="nav-icon">📅</div><div class="nav-label">Calendar</div></div>
-  <div class="nav-t" data-tab="resale"><div class="nav-icon">🃏</div><div class="nav-label">Cards</div></div>
+  <div class="nav-t" data-tab="resale"><div class="nav-pb-icon"></div><div class="nav-label">Cards</div></div>
   <div class="nav-t" data-tab="settings"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
 </nav>
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
 const SETS = [
+  // ── 2026 Releases ──
   { name:'Mega Evolution: Chaos Rising', short:'Chaos Rising', date:'2026-05-22', status:'out',
-    msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99},
-    img:'https://i.ebayimg.com/images/g/DZwAAeSwZcJpsu0f/s-l300.jpg',
-    cardImg:'https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/CRI/CRI_022_R_EN_SM.png',
-    setCode:'CRI', keywords:['chaos rising','mega greninja'] },
+    msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99,tin:24.99,collection:39.99},
+    setCode:'CRI', keywords:['chaos rising'] },
   { name:'Mega Evolution: Perfect Order', short:'Perfect Order', date:'2026-03-27', status:'out',
-    msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99},
-    img:null, cardImg:'https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/CRI/CRI_001_R_EN_SM.png',
+    msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99,tin:24.99},
     setCode:'PO', keywords:['perfect order'] },
   { name:'Mega Evolution: Ascended Heroes', short:'Ascended Heroes', date:'2026-01-30', status:'out',
-    msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99},
-    img:null, cardImg:'https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/CRI/CRI_090_R_EN_SM.png',
+    msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99,tin:24.99},
     setCode:'AH', keywords:['ascended heroes'] },
   { name:'First Partner Collection Series 2', short:'First Partner S2', date:'2026-06-19', status:'upcoming',
-    msrp:{etb:null,display:null,bundle:19.99,pack:null},
-    img:null, cardImg:null, setCode:'FP2', keywords:['first partner series 2'] },
+    msrp:{etb:null,display:null,bundle:19.99,pack:null,collection:34.99},
+    setCode:'FP2', keywords:['first partner series 2'] },
   { name:'Mega Evolution: Pitch Black Night', short:'Pitch Black Night', date:'2026-07-17', status:'upcoming',
+    msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99,tin:24.99},
+    setCode:'PBN', keywords:['pitch black night'] },
+  { name:'30th Anniversary Celebration Set', short:'30th Anniversary', date:'2026-09-18', status:'upcoming',
+    msrp:{etb:null,display:189.99,bundle:29.99,pack:null,collection:69.99},
+    setCode:'30A', keywords:['30th anniversary'] },
+  { name:'Mega Evolution: Storm Emerald', short:'Storm Emerald', date:null, status:'upcoming',
     msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99},
-    img:null, cardImg:null, setCode:'PBN', keywords:['pitch black night'] },
+    setCode:'SE', keywords:['storm emerald'] },
+  // ── 2025 Releases ──
+  { name:'Scarlet & Violet: Destined Rivals', short:'Destined Rivals', date:'2025-05-30', status:'out',
+    msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99,tin:24.99},
+    setCode:'SV10', keywords:['destined rivals'] },
+  { name:'Scarlet & Violet: Prismatic Evolutions', short:'Prismatic Evolutions', date:'2025-01-17', status:'out',
+    msrp:{etb:49.99,display:159.99,bundle:29.99,pack:4.99,collection:49.99},
+    setCode:'SV8.5', keywords:['prismatic evolutions'] },
+  { name:'Scarlet & Violet: Surging Sparks', short:'Surging Sparks', date:'2024-11-08', status:'out',
+    msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99,tin:24.99},
+    setCode:'SV8', keywords:['surging sparks'] },
+  { name:'Scarlet & Violet: Stellar Crown', short:'Stellar Crown', date:'2024-09-13', status:'out',
+    msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99},
+    setCode:'SV7', keywords:['stellar crown'] },
+  { name:'Scarlet & Violet: Twilight Masquerade', short:'Twilight Masquerade', date:'2024-05-24', status:'out',
+    msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99,tin:24.99},
+    setCode:'SV6', keywords:['twilight masquerade'] },
+  { name:'Scarlet & Violet: Temporal Forces', short:'Temporal Forces', date:'2024-03-22', status:'out',
+    msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99},
+    setCode:'SV5', keywords:['temporal forces'] },
+  { name:'Scarlet & Violet: Paldean Fates', short:'Paldean Fates', date:'2024-01-26', status:'out',
+    msrp:{etb:44.99,display:null,bundle:null,pack:null,collection:49.99},
+    setCode:'SV4.5', keywords:['paldean fates'] },
+  { name:'Scarlet & Violet: Paradox Rift', short:'Paradox Rift', date:'2023-11-03', status:'out',
+    msrp:{etb:44.99,display:149.99,bundle:24.99,pack:4.99,tin:24.99},
+    setCode:'SV4', keywords:['paradox rift'] },
 ];
 
-const PROD_LABELS = { etb:'Elite Trainer Box', display:'Booster Display', bundle:'Booster Bundle', pack:'Booster Pack' };
+const PROD_LABELS = { etb:'Elite Trainer Box', display:'Booster Display', bundle:'Booster Bundle', tin:'Tin', collection:'Collection Box', pack:'Booster Pack' };
 let activeProd = 'etb';
 let activeSetIdx = null;
 
