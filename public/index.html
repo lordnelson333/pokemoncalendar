@@ -406,49 +406,35 @@ function closePanel() {
 // Pricing via /api/prices proxy on Railway server
 
 async function fetchSetPrices(set, idx) {
-  const msrp = set.msrp[activeProd];
+  const msrp      = set.msrp[activeProd];
   const prodLabel = PROD_LABELS[activeProd];
-  const query = `${set.short} ${prodLabel}`;
+  const tcgQuery  = encodeURIComponent(set.name + ' ' + prodLabel);
+  const ebayQuery = encodeURIComponent('Pokemon TCG ' + set.short + ' ' + prodLabel);
+  const tcgUrl    = 'https://www.tcgplayer.com/search/pokemon/sealed-products?q=' + tcgQuery + '&view=grid';
+  const ebayUrl   = 'https://www.ebay.com/sch/i.html?_nkw=' + ebayQuery + '&LH_Sold=1&LH_Complete=1';
 
-  try {
-    // Call via Railway proxy — server-side, no CORS/IP block
-    const res = await fetch(`/api/prices?q=${encodeURIComponent(query)}&limit=10`);
-    if (!res.ok) throw new Error(`Server error ${res.status}`);
-    const data = await res.json();
-    console.log('[Prices] API response:', JSON.stringify(data).slice(0, 300));
-    if (data.error) throw new Error(data.error);
-
-    const hits = data?.data || data?.results || data?.cards || [];
-    const hit  = hits[0];
-    if (!hit) throw new Error('No results returned');
-
-    const priceRaw = hit.prices?.raw || hit.prices || {};
-    const nmPrices = priceRaw.near_mint || priceRaw.nm || priceRaw;
-    const tcp      = nmPrices.tcgplayer || nmPrices.tcg || {};
-    const ebay     = nmPrices.ebay || {};
-
-    renderPricePanel({
-      low:      tcp.low    || tcp.low_price  || null,
-      market:   tcp.market || tcp.mid_price  || null,
-      high:     tcp.high   || tcp.high_price || null,
-      avg:      tcp.market || null,
-      ebay_7d:  ebay.avg_7d || ebay.average_7d || null,
-      listings: hit.listings_count || hit.total_listings || null,
-      trend:    'flat', trend_pct: '—',
-      note:     `TCGPlayer · ${hit.set?.name || set.name}`,
-    }, msrp, set);
-
-  } catch(e) {
-    console.warn('Price fetch failed:', e.message);
-    const msrpV = msrp || 44.99;
-    renderPricePanel({
-      low: +(msrpV*0.88).toFixed(2), market: +(msrpV*1.02).toFixed(2),
-      high: +(msrpV*1.3).toFixed(2), avg: +(msrpV*1.02).toFixed(2),
-      listings: null, trend:'flat', trend_pct:'—',
-      note: 'Live data unavailable — showing estimates'
-    }, msrp, set);
-  }
+  document.getElementById('pp-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hl);border-radius:10px;overflow:hidden;margin-bottom:14px;">
+      <div style="background:var(--s2);padding:14px 8px;text-align:center;">
+        <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:2px;text-transform:uppercase;color:var(--stone);margin-bottom:6px;">MSRP</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);">${msrp ? '$' + msrp.toFixed(2) : '—'}</div>
+        <div style="font-size:9px;color:var(--stone);font-family:'DM Mono',monospace;">Retail price</div>
+      </div>
+      <div style="background:var(--s2);padding:14px 8px;text-align:center;">
+        <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:2px;text-transform:uppercase;color:var(--stone);margin-bottom:6px;">SET</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--ink);line-height:1.2;">${set.short}</div>
+        <div style="font-size:9px;color:var(--stone);font-family:'DM Mono',monospace;">${set.date || 'Upcoming'}</div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--mute);font-family:'DM Mono',monospace;margin-bottom:14px;text-align:center;letter-spacing:0.5px;">TAP BELOW FOR LIVE MARKET PRICES</div>
+    <a href="${tcgUrl}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:var(--ink);color:var(--bg);border:none;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:10px;letter-spacing:0.3px;box-sizing:border-box;">
+      🃏 View on TCGPlayer →
+    </a>
+    <a href="${ebayUrl}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:transparent;color:var(--ink);border:1px solid var(--hl);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:0.3px;box-sizing:border-box;">
+      🏷️ View Sold on eBay →
+    </a>`;
 }
+
 
 function renderPricePanel(p, msrp, set) {
   const diffPct = msrp && p.market ? Math.round(((p.market - msrp)/msrp)*100) : null;
@@ -546,7 +532,7 @@ async function doSearch(query) {
   try {
     // Call pokemontcg.io from the browser — images CDN is public, no CORS issues
     const res = await fetch(
-      `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(q)}"&pageSize=24&select=id,name,images,set,number,rarity,tcgplayer`,
+      `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(q)}"&pageSize=50&select=id,name,images,set,number,rarity,tcgplayer`,
       { headers: { 'Accept': 'application/json' } }
     );
 
