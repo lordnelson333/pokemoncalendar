@@ -669,67 +669,44 @@ function daysUntil(dateStr) {
 renderSets();
 </script>
 
-<!-- Hidden YouTube iframe -->
-<iframe id="yt-player"
-  src="https://www.youtube.com/embed/videoseries?list=PLZPHD7rCglOI-NWoebhuc43sIct8_j5Xt&enablejsapi=1&autoplay=0&controls=0&mute=1"
-  style="display:none;" allow="autoplay" title="Pokemon Lofi Playlist">
-</iframe>
 
 
+
+
+<audio id="bg-audio" src="/music.mp3" loop preload="auto"></audio>
 
 <script>
-// Music player
 var isPlaying = false;
-var ytReady   = false;
-var ytPlayer  = null;
+var audio = document.getElementById('bg-audio');
+audio.volume = 0.6;
 
-// Load YouTube IFrame API
-var tag = document.createElement('script');
-tag.src = 'https://www.youtube.com/iframe_api';
-document.head.appendChild(tag);
-
-function onYouTubeIframeAPIReady() {
-  ytPlayer = new YT.Player('yt-player', {
-    events: {
-      onReady: function() {
-        ytReady = true;
-        // Auto-play on first user interaction (required by mobile browsers)
-        function startMusic() {
-          if (ytReady && !isPlaying) toggleMusic();
-        }
-        document.addEventListener('touchend', startMusic, { once: true, passive: true });
-        document.addEventListener('scroll',   startMusic, { once: true, passive: true });
-        document.addEventListener('click',    startMusic, { once: true });
-      }
-    }
-  });
-}
+// Auto-start on first tap anywhere
+document.addEventListener('touchend', function startOnTouch() {
+  if (!isPlaying) toggleMusic();
+}, { once: true, passive: true });
 
 function toggleMusic() {
-  if (!ytReady || !ytPlayer) return;
-
   if (isPlaying) {
-    ytPlayer.pauseVideo();
+    audio.pause();
     isPlaying = false;
     document.getElementById('music-icon').textContent = '▶';
     document.getElementById('music-label').textContent = 'MUSIC';
   } else {
-    ytPlayer.playVideo();
-    ytPlayer.unMute();
-    ytPlayer.setVolume(80);
-    isPlaying = true;
-    document.getElementById('music-icon').textContent = '❚❚';
-    document.getElementById('music-label').textContent = '♪ MUSIC';
-    animateBars();
+    audio.play().then(function() {
+      isPlaying = true;
+      document.getElementById('music-icon').textContent = '❚❚';
+      document.getElementById('music-label').textContent = '♪ MUSIC';
+      animateBars();
+    }).catch(function(e) {
+      console.warn('Audio play failed:', e);
+    });
   }
 }
 
 function animateBars() {
   if (!isPlaying) return;
-  var bars = document.querySelectorAll('.music-bar');
-  bars.forEach(function(bar) {
-    var h = Math.floor(Math.random() * 12) + 3;
-    bar.style.height = h + 'px';
+  document.querySelectorAll('.music-bar').forEach(function(bar) {
+    bar.style.height = (Math.floor(Math.random() * 12) + 3) + 'px';
   });
   setTimeout(animateBars, 300);
 }
