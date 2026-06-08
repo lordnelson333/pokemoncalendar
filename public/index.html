@@ -621,7 +621,23 @@ function filterCard(el, rarity) {
   if (rarity === '151') {
     query = 'https://api.pokemontcg.io/v2/cards?q=set.id:sv3pt5&pageSize=50&orderBy=-number';
   } else if (rarity === 'Promo') {
-    query = 'https://api.pokemontcg.io/v2/cards?q=set.series:Scarlet%20%26%20Violet%20Promos&pageSize=50&orderBy=-number';
+    query = 'https://api.pokemontcg.io/v2/cards?q=set.id:svp&pageSize=50&orderBy=-number';
+  } else if (rarity === 'Art Rare') {
+    query = 'https://api.pokemontcg.io/v2/cards?q=rarity:"Art Rare"&pageSize=50&orderBy=-set.releaseDate';
+  } else if (rarity === 'Illustration Rare') {
+    query = 'https://api.pokemontcg.io/v2/cards?q=rarity:"Illustration Rare"&pageSize=50&orderBy=-set.releaseDate';
+  } else if (rarity === 'Special Illustration Rare') {
+    query = 'https://api.pokemontcg.io/v2/cards?q=rarity:"Special Illustration Rare"&pageSize=50&orderBy=-set.releaseDate';
+  } else if (rarity === 'Holo Rare') {
+    query = 'https://api.pokemontcg.io/v2/cards?q=rarity:"Rare Holo"&pageSize=50&orderBy=-set.releaseDate';
+  } else if (rarity === 'Full Art') {
+    query = 'https://api.pokemontcg.io/v2/cards?q=rarity:"Rare Ultra"&pageSize=50&orderBy=-set.releaseDate';
+  } else if (rarity === 'Rainbow Rare') {
+    query = 'https://api.pokemontcg.io/v2/cards?q=rarity:"Rare Rainbow"&pageSize=50&orderBy=-set.releaseDate';
+  } else if (rarity === 'Gold') {
+    query = 'https://api.pokemontcg.io/v2/cards?q=rarity:"Rare Secret"&pageSize=50&orderBy=-set.releaseDate';
+  } else if (rarity === 'Shiny') {
+    query = 'https://api.pokemontcg.io/v2/cards?q=rarity:"Shiny Rare"&pageSize=50&orderBy=-set.releaseDate';
   } else {
     query = 'https://api.pokemontcg.io/v2/cards?q=rarity:"' + encodeURIComponent(rarity) + '"&pageSize=50&orderBy=-set.releaseDate';
   }
