@@ -671,7 +671,7 @@ renderSets();
 
 <!-- Hidden YouTube iframe -->
 <iframe id="yt-player"
-  src="https://www.youtube.com/embed/videoseries?list=PLZPHD7rCglOI-NWoebhuc43sIct8_j5Xt&enablejsapi=1&autoplay=0&controls=0&mute=0"
+  src="https://www.youtube.com/embed/videoseries?list=PLZPHD7rCglOI-NWoebhuc43sIct8_j5Xt&enablejsapi=1&autoplay=0&controls=0&mute=1"
   style="display:none;" allow="autoplay" title="Pokemon Lofi Playlist">
 </iframe>
 
@@ -693,20 +693,13 @@ function onYouTubeIframeAPIReady() {
     events: {
       onReady: function() {
         ytReady = true;
-        // Auto-play on first scroll
-        window.addEventListener('scroll', function startOnScroll() {
-          if (ytReady && !isPlaying) {
-            toggleMusic();
-          }
-          window.removeEventListener('scroll', startOnScroll);
-        }, { once: true });
-        // Also trigger on first touch/tap anywhere
-        document.addEventListener('touchstart', function startOnTouch() {
-          if (ytReady && !isPlaying) {
-            toggleMusic();
-          }
-          document.removeEventListener('touchstart', startOnTouch);
-        }, { once: true, passive: true });
+        // Auto-play on first user interaction (required by mobile browsers)
+        function startMusic() {
+          if (ytReady && !isPlaying) toggleMusic();
+        }
+        document.addEventListener('touchend', startMusic, { once: true, passive: true });
+        document.addEventListener('scroll',   startMusic, { once: true, passive: true });
+        document.addEventListener('click',    startMusic, { once: true });
       }
     }
   });
@@ -714,25 +707,19 @@ function onYouTubeIframeAPIReady() {
 
 function toggleMusic() {
   if (!ytReady || !ytPlayer) return;
-  var player  = document.getElementById('music-player');
-  var btn     = document.getElementById('music-btn');
-  var status  = document.getElementById('music-status');
-  var bars    = document.getElementById('music-bars');
 
   if (isPlaying) {
     ytPlayer.pauseVideo();
     isPlaying = false;
-    player.classList.add('paused');
-    status.textContent = 'PAUSED';
-    document.getElementById('music-label').textContent = 'PLAY';
     document.getElementById('music-icon').textContent = '▶';
+    document.getElementById('music-label').textContent = 'MUSIC';
   } else {
     ytPlayer.playVideo();
+    ytPlayer.unMute();
+    ytPlayer.setVolume(80);
     isPlaying = true;
-    player.classList.remove('paused');
-    status.textContent = 'NOW PLAYING';
-    document.getElementById('music-label').textContent = '♪ MUSIC';
     document.getElementById('music-icon').textContent = '❚❚';
+    document.getElementById('music-label').textContent = '♪ MUSIC';
     animateBars();
   }
 }
