@@ -673,33 +673,35 @@ renderSets();
 
 
 
-<audio id="bg-audio" src="/confident-glow.mp3" loop preload="auto"></audio>
-
 <script>
 var isPlaying = false;
-var audio = document.getElementById('bg-audio');
-audio.volume = 0.6;
-
-// Auto-start on first tap anywhere
-document.addEventListener('touchend', function startOnTouch() {
-  if (!isPlaying) toggleMusic();
-}, { once: true, passive: true });
+var audio = null;
 
 function toggleMusic() {
+  // Create audio element on first tap (required by iOS Safari)
+  if (!audio) {
+    audio = new Audio('/confident-glow.mp3');
+    audio.loop = true;
+    audio.volume = 0.6;
+  }
+
   if (isPlaying) {
     audio.pause();
     isPlaying = false;
     document.getElementById('music-icon').textContent = '▶';
     document.getElementById('music-label').textContent = 'MUSIC';
   } else {
-    audio.play().then(function() {
-      isPlaying = true;
-      document.getElementById('music-icon').textContent = '❚❚';
-      document.getElementById('music-label').textContent = '♪ MUSIC';
-      animateBars();
-    }).catch(function(e) {
-      console.warn('Audio play failed:', e);
-    });
+    var playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.then(function() {
+        isPlaying = true;
+        document.getElementById('music-icon').textContent = '❚❚';
+        document.getElementById('music-label').textContent = '♪ MUSIC';
+        animateBars();
+      }).catch(function(e) {
+        console.warn('Play failed:', e);
+      });
+    }
   }
 }
 
