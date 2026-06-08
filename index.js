@@ -20,9 +20,10 @@ db.clearExpiredAlerts();
 
 const PORT       = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const INDEX      = path.join(PUBLIC_DIR, 'index.html');
 
 const MIME = {
-  '.html': 'text/html',
+  '.html': 'text/html; charset=utf-8',
   '.mp3':  'audio/mpeg',
   '.jpg':  'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -30,27 +31,40 @@ const MIME = {
   '.ico':  'image/x-icon',
   '.css':  'text/css',
   '.js':   'application/javascript',
-  '.json': 'application/json',
 };
 
 const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
-  const pathname = req.url.split('?')[0];
+  const raw      = req.url.split('?')[0];
+  const pathname = decodeURIComponent(raw);
   const ext      = path.extname(pathname).toLowerCase();
 
-  // Serve static files from public/
-  const filePath = (pathname === '/' || !ext)
-    ? path.join(PUBLIC_DIR, 'index.html')
-    : path.join(PUBLIC_DIR, pathname);
+  // Root or no extension → serve index.html
+  if (pathname === '/' || !ext) {
+    fs.readFile(INDEX, (err, data) => {
+      if (err) { res.writeHead(500); res.end('Dashboard not found'); return; }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+      res.end(data);
+    });
+    return;
+  }
+
+  // Static file — serve from public/
+  const filePath = path.join(PUBLIC_DIR, pathname);
+
+  // Security: prevent directory traversal
+  if (!filePath.startsWith(PUBLIC_DIR)) {
+    res.writeHead(403); res.end('Forbidden'); return;
+  }
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
-      // Fall back to index.html
-      fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (err2, data2) => {
+      // File not found → serve index.html
+      fs.readFile(INDEX, (err2, data2) => {
         if (err2) { res.writeHead(404); res.end('Not found'); return; }
-        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(data2);
       });
       return;
@@ -69,13 +83,11 @@ server.listen(PORT, () => {
   console.log(`[Web] Dashboard live at http://localhost:${PORT}`);
 });
 
-// Calendar cron — daily at 9 AM
 cron.schedule('0 9 * * *', async () => {
   console.log('[Cron] Daily calendar check…');
   await calendar.checkReleases();
 });
 
-// Heartbeat
 cron.schedule('*/5 * * * *', () => {
   console.log(`[Heartbeat] ${new Date().toISOString()} ✓`);
 });
