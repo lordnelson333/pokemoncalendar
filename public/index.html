@@ -1108,16 +1108,13 @@ async function doTCGSearch() {
 function renderOPTCGCards(cards, grid) {
   grid.innerHTML = '';
   cards.forEach(function(card) {
-    // OPTCG API image fields
-    var imgId  = card.image_id || card.imageId || '';
-    var img    = card.image || card.imageUrl || card.img_url || card.image_url || '';
-    if (!img && imgId) img = 'https://en.onepiece-cardgame.com/images/cardlist/card/' + imgId + '.png';
-    if (!img && card.card_id) img = 'https://en.onepiece-cardgame.com/images/cardlist/card/' + card.card_id + '.png';
-    var name   = card.name || card.card_name || card.title || '';
-    var set    = card.set || card.set_id || card.setId || '';
-    var num    = card.card_id || card.number || card.cardNumber || '';
-    var ebayQ  = encodeURIComponent('One Piece TCG ' + name);
-    var ebayUrl = 'https://www.ebay.com/sch/i.html?_nkw=' + ebayQ;
+    var img    = card.card_image || '';
+    var name   = card.card_name || '';
+    var set    = card.set_name || card.set_id || '';
+    var num    = card.card_set_id || '';
+    var price  = card.market_price || null;
+    var ebayQ  = encodeURIComponent('One Piece TCG ' + name + ' ' + num);
+    var ebayUrl = 'https://www.ebay.com/sch/i.html?_nkw=' + ebayQ + '&LH_Sold=1&LH_Complete=1';
 
     var a = document.createElement('a');
     a.className = 'card-item';
