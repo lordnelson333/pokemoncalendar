@@ -275,8 +275,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-
     <div id="splash-pb"></div>
     <div id="splash-logo">Poké<em>Radar</em></div>
     <div id="splash-sub">TCG Price Guide</div>
-    <button id="enter-btn" onclick="enterApp()">ENTER</button>
-    <div id="splash-hint">Tap to begin</div>
+    <div id="splash-form" style="width:100%;display:flex;flex-direction:column;gap:10px;">
+      <input id="splash-email" type="email" placeholder="Enter your email" autocapitalize="none"
+        style="width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:9999px;padding:14px 20px;color:#fff;font-size:15px;outline:none;text-align:center;"
+        onkeydown="if(event.key==='Enter')checkAccess()" />
+      <button id="enter-btn" onclick="checkAccess()"
+        style="background:#fff;color:#080810;border:none;border-radius:9999px;padding:16px 48px;font-size:16px;font-weight:800;letter-spacing:2px;text-transform:uppercase;cursor:pointer;width:100%;">
+        ENTER
+      </button>
+      <div id="splash-msg" style="font-size:12px;text-align:center;min-height:18px;color:rgba(255,255,255,0.5);font-family:DM Mono,monospace;letter-spacing:1px;"></div>
+    </div>
   </div>
 </div>
 
@@ -373,7 +381,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-
 <div class="tab" id="tab-cards">
   <div class="sec-label">Pokédex Price Guide</div>
   <div class="search-bar">
-    <input class="search-input" id="card-q" placeholder="Search any Pokémon card…" />
+    <input class="search-input" id="card-q" placeholder="Card name or number (e.g. 025)" />
     <button class="search-btn" onclick="doCardSearch()">Search</button>
   </div>
   <div class="quick-row">
@@ -401,17 +409,57 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-
   </div>
 </div>
 
-<!-- SETTINGS TAB -->
-<div class="tab" id="tab-settings">
-  <div class="sec-label">Settings</div>
-  <div class="settings-group">
-    <div class="s-row"><div><div class="s-label">TCGPlayer API</div><div class="s-sub">Card prices & images</div></div><div class="s-val green">LIVE</div></div>
-    <div class="s-row"><div><div class="s-label">Release Calendar</div><div class="s-sub">2026 confirmed dates</div></div><div class="s-val green">5 SETS</div></div>
-    <div class="s-row"><div><div class="s-label">Discord Alerts</div><div class="s-sub">Release day & 7-day warning</div></div><div class="s-val green">ACTIVE</div></div>
+<!-- GRADING TAB -->
+<div class="tab" id="tab-grading">
+  <div class="sec-label">PSA Graded Prices</div>
+  <div class="search-bar">
+    <input class="search-input" id="grade-q" placeholder="Card name or number + grade (e.g. 025 PSA 10)" />
+    <button class="search-btn" onclick="doGradeSearch()">Search</button>
   </div>
-  <div class="settings-group">
-    <div class="s-row"><div><div class="s-label">Drop Threshold</div><div class="s-sub">Alert when below MSRP by</div></div><div class="s-val">10%</div></div>
-    <div class="s-row"><div><div class="s-label">Scan Frequency</div><div class="s-sub">Calendar check</div></div><div class="s-val">Daily 9AM</div></div>
+  <div class="quick-row">
+    <div class="q-chip" onclick="quickGrade(this,'Charizard Base Set PSA 10')">Charizard PSA 10</div>
+    <div class="q-chip" onclick="quickGrade(this,'Pikachu Illustrator PSA 10')">Pikachu Illus PSA 10</div>
+    <div class="q-chip" onclick="quickGrade(this,'Flying Pikachu PSA 10')">Flying Pikachu PSA 10</div>
+    <div class="q-chip" onclick="quickGrade(this,'Umbreon Gold Star PSA 10')">Umbreon Gold Star</div>
+    <div class="q-chip" onclick="quickGrade(this,'Charizard ex PSA 10')">Charizard ex PSA 10</div>
+  </div>
+  <div id="grade-results">
+    <div class="msg">Search any graded Pokemon card above</div>
+  </div>
+</div>
+
+<!-- OTHER TCG TAB -->
+<div class="tab" id="tab-settings">
+  <div class="sec-label">Other TCGs</div>
+
+  <!-- Game selector -->
+  <div class="prod-pills" style="margin-bottom:16px;">
+    <div class="prod-pill active" onclick="setTCG(this,'onepiece')">One Piece</div>
+    <div class="prod-pill" onclick="setTCG(this,'dragonball')">Dragon Ball</div>
+    <div class="prod-pill" onclick="setTCG(this,'digimon')">Digimon</div>
+    <div class="prod-pill" onclick="setTCG(this,'mtg')">Magic</div>
+    <div class="prod-pill" onclick="setTCG(this,'yugioh')">Yu-Gi-Oh</div>
+    <div class="prod-pill" onclick="setTCG(this,'lorcana')">Lorcana</div>
+  </div>
+
+  <!-- Search bar -->
+  <div class="search-bar">
+    <input class="search-input" id="tcg-q" placeholder="Search One Piece cards…" />
+    <button class="search-btn" onclick="doTCGSearch()">Search</button>
+  </div>
+
+  <!-- Quick chips per game -->
+  <div class="quick-row" id="tcg-chips">
+    <div class="q-chip" onclick="quickTCG(this,'Monkey D. Luffy')">Luffy</div>
+    <div class="q-chip" onclick="quickTCG(this,'Roronoa Zoro')">Zoro</div>
+    <div class="q-chip" onclick="quickTCG(this,'Nami')">Nami</div>
+    <div class="q-chip" onclick="quickTCG(this,'Boa Hancock')">Hancock</div>
+    <div class="q-chip" onclick="quickTCG(this,'Shanks')">Shanks</div>
+  </div>
+
+  <!-- Results grid -->
+  <div id="tcg-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:16px;">
+    <div class="msg" style="grid-column:1/-1;">Select a game and search a card</div>
   </div>
 </div>
 
@@ -422,7 +470,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-
   <div class="nav-t active" data-tab="products"><div class="nav-icon">📦</div><div class="nav-label">Products</div></div>
   <div class="nav-t" data-tab="calendar"><div class="nav-icon">📅</div><div class="nav-label">Calendar</div></div>
   <div class="nav-t" data-tab="cards"><div class="nav-pb-icon"></div><div class="nav-label">Cards</div></div>
-  <div class="nav-t" data-tab="settings"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
+  <div class="nav-t" data-tab="grading"><div class="nav-icon">🏆</div><div class="nav-label">Grading</div></div>
+  <div class="nav-t" data-tab="settings"><div class="nav-icon">🃏</div><div class="nav-label">TCGs</div></div>
 </nav>
 
 <script>
@@ -666,7 +715,18 @@ function doCardSearch() {
   if (!q) return;
   var grid = document.getElementById('card-grid');
   grid.innerHTML = '<div class="spin-wrap"><div class="spin-pb"></div><div style="font-size:12px;color:var(--mute);">Searching cards…</div></div>';
-  fetch('https://api.pokemontcg.io/v2/cards?q=name:"' + encodeURIComponent(q) + '"&pageSize=50', {
+
+  // Detect if input looks like a card number (e.g. 025, 025/198, 25/198)
+  var isNumber = /^\d+(\s*\/\s*\d+)?$/.test(q);
+  var apiUrl;
+  if (isNumber) {
+    var num = q.split('/')[0].trim().replace(/^0+/, '') || '0';
+    apiUrl = 'https://api.pokemontcg.io/v2/cards?q=number:' + encodeURIComponent(num) + '&pageSize=50&orderBy=-set.releaseDate';
+  } else {
+    apiUrl = 'https://api.pokemontcg.io/v2/cards?q=name:"' + encodeURIComponent(q) + '"&pageSize=50';
+  }
+
+  fetch(apiUrl, {
     headers: {'Accept':'application/json','X-Api-Key':'64958068-ebbb-49b2-bf3f-2daa61478181'}
   })
   .then(function(r){ return r.json(); })
@@ -854,16 +914,241 @@ function animateBars() {
 }
 
 function enterApp() {
-  // Start music on enter
   initAudio();
-  // Animate splash out
   var splash = document.getElementById('splash');
   splash.style.opacity = '0';
   splash.style.transform = 'scale(1.05)';
-  setTimeout(function() {
-    splash.style.display = 'none';
-  }, 800);
+  setTimeout(function() { splash.style.display = 'none'; }, 800);
 }
+
+function checkAccess() {
+  enterApp();
+}
+
+function quickGrade(el, q) {
+  document.querySelectorAll('.q-chip').forEach(function(c){c.classList.remove('sel');});
+  el.classList.add('sel');
+  document.getElementById('grade-q').value = q;
+  doGradeSearch();
+}
+
+async function doGradeSearch() {
+  var q = document.getElementById('grade-q').value.trim();
+  if (!q) return;
+  var results = document.getElementById('grade-results');
+  results.innerHTML = '<div class="spin-wrap"><div class="spin-pb"></div><div style="font-size:12px;color:var(--mute);">Searching graded prices…</div></div>';
+
+  // Extract grade from query (PSA 10, PSA 9, etc)
+  var gradeMatch = q.match(/PSA\s*(\d+)/i);
+  var grade = gradeMatch ? gradeMatch[1] : '10';
+  var cardName = q.replace(/PSA\s*\d+/i, '').trim().replace(/^0+/, '').trim();
+
+  // Detect if it's a card number search
+  var isNumber = /^\d+(\/\d+)?$/.test(cardName);
+
+  try {
+    // Search pokemontcg.io for the card image
+    var apiQuery = isNumber
+      ? 'https://api.pokemontcg.io/v2/cards?q=number:' + encodeURIComponent(cardName.split('/')[0].replace(/^0+/,'') || '0') + '&pageSize=4&orderBy=-set.releaseDate'
+      : 'https://api.pokemontcg.io/v2/cards?q=name:"' + encodeURIComponent(cardName) + '"&pageSize=4&orderBy=-set.releaseDate';
+    var cardRes = await fetch(apiQuery,
+      { headers: { 'Accept':'application/json', 'X-Api-Key':'64958068-ebbb-49b2-bf3f-2daa61478181' } }
+    );
+    var cardData = await cardRes.json();
+    var card = (cardData.data || [])[0] || null;
+
+    // Build eBay sold search URL for this graded card
+    var ebayQuery = encodeURIComponent('Pokemon ' + q + ' sold');
+    var ebayUrl   = 'https://www.ebay.com/sch/i.html?_nkw=' + ebayQuery + '&LH_Sold=1&LH_Complete=1&_sop=13';
+    var tcgUrl    = 'https://www.tcgplayer.com/search/pokemon/product?q=' + encodeURIComponent(q);
+
+    var img = card ? (card.images.large || card.images.small) : '';
+    var setName = card ? (card.set.name + ' #' + card.number) : '';
+
+    results.innerHTML =
+      '<div style="background:var(--s1);border:1px solid var(--hl2);border-radius:16px;overflow:hidden;margin-bottom:12px;">' +
+
+        // Card image + grade badge
+        '<div style="position:relative;background:var(--s2);display:flex;align-items:center;justify-content:center;padding:20px;">' +
+          (img ? '<img src="' + img + '" alt="' + cardName + '" style="max-width:200px;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.6);">' : '<div style="font-size:60px;">🃏</div>') +
+          '<div style="position:absolute;top:12px;right:12px;background:var(--gold);color:#111;font-family:Bebas Neue,sans-serif;font-size:22px;padding:4px 14px;border-radius:9999px;letter-spacing:1px;">PSA ' + grade + '</div>' +
+        '</div>' +
+
+        // Card info
+        '<div style="padding:16px;">' +
+          '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:4px;">' + cardName + '</div>' +
+          (setName ? '<div style="font-size:11px;color:var(--stone);font-family:DM Mono,monospace;margin-bottom:16px;">' + setName + '</div>' : '<div style="margin-bottom:16px;"></div>') +
+
+          // Grade info grid
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hl);border-radius:10px;overflow:hidden;margin-bottom:16px;">' +
+            '<div style="background:var(--s2);padding:12px 10px;text-align:center;">' +
+              '<div style="font-size:9px;font-family:DM Mono,monospace;letter-spacing:2px;text-transform:uppercase;color:var(--stone);margin-bottom:5px;">GRADE</div>' +
+              '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;color:var(--gold);">PSA ' + grade + '</div>' +
+            '</div>' +
+            '<div style="background:var(--s2);padding:12px 10px;text-align:center;">' +
+              '<div style="font-size:9px;font-family:DM Mono,monospace;letter-spacing:2px;text-transform:uppercase;color:var(--stone);margin-bottom:5px;">CONDITION</div>' +
+              '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;color:var(--green);">' + gradeLabel(grade) + '</div>' +
+            '</div>' +
+          '</div>' +
+
+          '<div style="font-size:10px;color:var(--mute);font-family:DM Mono,monospace;margin-bottom:14px;text-align:center;letter-spacing:0.5px;">TAP BELOW FOR LIVE GRADED PRICES</div>' +
+
+          '<a href="' + ebayUrl + '" target="_blank" style="display:flex;align-items:center;justify-content:center;width:100%;padding:14px;background:var(--ink);color:var(--bg);border-radius:9999px;font-family:DM Sans,sans-serif;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:10px;box-sizing:border-box;">🏷️ View PSA ' + grade + ' Sold on eBay →</a>' +
+          '<a href="' + tcgUrl + '" target="_blank" style="display:flex;align-items:center;justify-content:center;width:100%;padding:14px;background:transparent;color:var(--ink);border:1px solid var(--hl);border-radius:9999px;font-family:DM Sans,sans-serif;font-size:14px;font-weight:700;text-decoration:none;box-sizing:border-box;">🃏 View on TCGPlayer →</a>' +
+        '</div>' +
+      '</div>';
+
+  } catch(e) {
+    results.innerHTML = '<div class="msg" style="color:var(--red);">Error: ' + e.message + '</div>';
+  }
+}
+
+function gradeLabel(grade) {
+  var g = parseInt(grade);
+  if (g === 10) return 'GEM MINT';
+  if (g === 9)  return 'MINT';
+  if (g === 8)  return 'NM-MT';
+  if (g === 7)  return 'NM';
+  if (g === 6)  return 'EX-MT';
+  if (g === 5)  return 'EX';
+  if (g === 4)  return 'VG-EX';
+  if (g === 3)  return 'VG';
+  if (g === 2)  return 'GOOD';
+  if (g === 1)  return 'POOR';
+  return 'GRADED';
+}
+
+document.getElementById('grade-q').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doGradeSearch();
+});
+
+// ── OTHER TCGs ────────────────────────────────────────────────────────────────
+var activeTCG = 'onepiece';
+
+var TCG_CONFIG = {
+  onepiece:   { name:'One Piece',   game:'onepiece',   chips:['Monkey D. Luffy','Roronoa Zoro','Nami','Shanks','Boa Hancock'], placeholder:'Search One Piece cards…' },
+  dragonball: { name:'Dragon Ball', game:'dragonball', chips:['Goku','Vegeta','Gohan','Frieza','Piccolo'],                    placeholder:'Search Dragon Ball cards…' },
+  digimon:    { name:'Digimon',     game:'digimon',    chips:['Agumon','Gabumon','Greymon','MetalGarurumon','Omnimon'],       placeholder:'Search Digimon cards…' },
+  mtg:        { name:'Magic',       game:'mtg',        chips:['Black Lotus','Lightning Bolt','Counterspell','Llanowar Elves','Dark Ritual'], placeholder:'Search Magic cards…' },
+  yugioh:     { name:'Yu-Gi-Oh',    game:'yugioh',     chips:['Blue-Eyes White Dragon','Dark Magician','Exodia','Slifer','Pot of Greed'], placeholder:'Search Yu-Gi-Oh cards…' },
+  lorcana:    { name:'Lorcana',     game:'lorcana',    chips:['Elsa','Mickey Mouse','Simba','Moana','Stitch'],               placeholder:'Search Lorcana cards…' },
+};
+
+function setTCG(el, game) {
+  document.querySelectorAll('#tab-settings .prod-pill').forEach(function(p){p.classList.remove('active');});
+  el.classList.add('active');
+  activeTCG = game;
+  var cfg = TCG_CONFIG[game];
+  document.getElementById('tcg-q').placeholder = cfg.placeholder;
+  document.getElementById('tcg-q').value = '';
+  // Update chips
+  var chipsEl = document.getElementById('tcg-chips');
+  chipsEl.innerHTML = cfg.chips.map(function(c) {
+    return '<div class="q-chip" onclick="quickTCG(this,\'' + c + '\')">' + c + '</div>';
+  }).join('');
+  document.getElementById('tcg-grid').innerHTML = '<div class="msg" style="grid-column:1/-1;">Search a ' + cfg.name + ' card above</div>';
+}
+
+function quickTCG(el, q) {
+  document.querySelectorAll('#tcg-chips .q-chip').forEach(function(c){c.classList.remove('sel');});
+  el.classList.add('sel');
+  document.getElementById('tcg-q').value = q;
+  doTCGSearch();
+}
+
+async function doTCGSearch() {
+  var q    = document.getElementById('tcg-q').value.trim();
+  if (!q) return;
+  var grid = document.getElementById('tcg-grid');
+  grid.innerHTML = '<div class="spin-wrap" style="grid-column:1/-1;"><div class="spin-pb"></div><div style="font-size:12px;color:var(--mute);">Searching…</div></div>';
+
+  var cfg = TCG_CONFIG[activeTCG];
+
+  try {
+    // pokemontcg.io supports multiple games via the game parameter
+    var url = 'https://api.pokemontcg.io/v2/cards?q=name:"' + encodeURIComponent(q) + '"&pageSize=24';
+    // For non-Pokemon games use dedicated APIs or eBay fallback
+    if (activeTCG !== 'pokemon') {
+      // Use TCGCSV or direct eBay search for other games
+      renderTCGEbay(q, cfg, grid);
+      return;
+    }
+    var res  = await fetch(url, { headers: {'Accept':'application/json','X-Api-Key':'64958068-ebbb-49b2-bf3f-2daa61478181'} });
+    var data = await res.json();
+    var cards = data.data || [];
+    if (!cards.length) {
+      grid.innerHTML = '<div class="msg" style="grid-column:1/-1;">No results for "' + q + '"</div>';
+      return;
+    }
+    renderTCGCards(cards, grid);
+  } catch(e) {
+    renderTCGEbay(q, cfg, grid);
+  }
+}
+
+function renderTCGCards(cards, grid) {
+  grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:16px;';
+  grid.innerHTML = '';
+  cards.forEach(function(card) {
+    var img    = (card.images && card.images.small) ? card.images.small : '';
+    var setName = (card.set && card.set.name) ? card.set.name : '';
+    var num    = card.number ? '#' + card.number : '';
+    var tcgUrl = (card.tcgplayer && card.tcgplayer.url) ? card.tcgplayer.url
+               : 'https://www.tcgplayer.com/search/all/product?q=' + encodeURIComponent(card.name);
+    var prices = (card.tcgplayer && card.tcgplayer.prices) ? card.tcgplayer.prices : {};
+    var market = (prices.holofoil && prices.holofoil.market) || (prices.normal && prices.normal.market) || null;
+
+    var a = document.createElement('a');
+    a.className = 'card-item';
+    a.href = tcgUrl;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+
+    var imgBox = document.createElement('div');
+    imgBox.className = 'card-img-box';
+    if (img) { var imgEl = document.createElement('img'); imgEl.src = img; imgEl.alt = card.name; imgEl.loading = 'lazy'; imgBox.appendChild(imgEl); }
+    else { imgBox.textContent = '🃏'; }
+
+    var info = document.createElement('div');
+    info.className = 'card-info';
+    var nameEl = document.createElement('div'); nameEl.className = 'card-name'; nameEl.textContent = card.name;
+    var setEl  = document.createElement('div'); setEl.className  = 'card-set';  setEl.textContent  = setName + ' ' + num;
+    info.appendChild(nameEl); info.appendChild(setEl);
+    if (market) {
+      var p = document.createElement('div'); p.className = 'card-price'; p.textContent = '$' + market.toFixed(2);
+      var l = document.createElement('div'); l.className = 'card-price-label'; l.textContent = 'TCGPlayer';
+      info.appendChild(p); info.appendChild(l);
+    } else {
+      var v = document.createElement('div'); v.className = 'card-view'; v.textContent = 'VIEW →';
+      info.appendChild(v);
+    }
+    a.appendChild(imgBox); a.appendChild(info);
+    grid.appendChild(a);
+  });
+}
+
+function renderTCGEbay(q, cfg, grid) {
+  // For non-Pokemon TCGs show eBay search cards
+  var ebayUrl  = 'https://www.ebay.com/sch/i.html?_nkw=' + encodeURIComponent(cfg.name + ' TCG ' + q) + '&_sop=13';
+  var tcgpUrl  = 'https://www.tcgplayer.com/search/all/product?q=' + encodeURIComponent(q) + '&view=grid';
+  var cardUrl  = 'https://www.cardmarket.com/en/search?searchString=' + encodeURIComponent(q);
+
+  grid.style.cssText = 'display:block;padding-bottom:16px;';
+  grid.innerHTML =
+    '<div style="background:var(--s1);border:1px solid var(--hl2);border-radius:16px;padding:20px;text-align:center;">' +
+      '<div style="font-size:40px;margin-bottom:12px;">🃏</div>' +
+      '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:4px;">' + q + '</div>' +
+      '<div style="font-size:11px;color:var(--stone);font-family:DM Mono,monospace;margin-bottom:20px;">' + cfg.name + ' TCG</div>' +
+      '<div style="font-size:10px;color:var(--mute);font-family:DM Mono,monospace;margin-bottom:14px;letter-spacing:0.5px;">TAP BELOW FOR LIVE PRICES</div>' +
+      '<a href="' + ebayUrl + '" target="_blank" style="display:flex;align-items:center;justify-content:center;width:100%;padding:14px;background:var(--ink);color:var(--bg);border-radius:9999px;font-family:DM Sans,sans-serif;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:10px;box-sizing:border-box;">🏷️ View on eBay →</a>' +
+      '<a href="' + tcgpUrl + '" target="_blank" style="display:flex;align-items:center;justify-content:center;width:100%;padding:14px;background:transparent;color:var(--ink);border:1px solid var(--hl);border-radius:9999px;font-family:DM Sans,sans-serif;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:10px;box-sizing:border-box;">🃏 View on TCGPlayer →</a>' +
+      '<a href="' + cardUrl + '" target="_blank" style="display:flex;align-items:center;justify-content:center;width:100%;padding:14px;background:transparent;color:var(--ink);border:1px solid var(--hl);border-radius:9999px;font-family:DM Sans,sans-serif;font-size:14px;font-weight:700;text-decoration:none;box-sizing:border-box;">📊 View on Cardmarket →</a>' +
+    '</div>';
+}
+
+document.getElementById('tcg-q').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doTCGSearch();
+});
 </script>
 </body>
 </html>
