@@ -413,7 +413,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-
 <div class="tab" id="tab-grading">
   <div class="sec-label">PSA Graded Prices</div>
   <div class="search-bar">
-    <input class="search-input" id="grade-q" placeholder="Card name or number + grade (e.g. 025 PSA 10)" />
+    <input class="search-input" id="grade-q" placeholder="e.g. Mewtwo PSA 10 or Charizard PSA 9" />
     <button class="search-btn" onclick="doGradeSearch()">Search</button>
   </div>
   <div class="quick-row">
@@ -926,7 +926,7 @@ function checkAccess() {
 }
 
 function quickGrade(el, q) {
-  document.querySelectorAll('.q-chip').forEach(function(c){c.classList.remove('sel');});
+  document.querySelectorAll('#tab-grading .q-chip').forEach(function(c){c.classList.remove('sel');});
   el.classList.add('sel');
   document.getElementById('grade-q').value = q;
   doGradeSearch();
@@ -936,21 +936,19 @@ async function doGradeSearch() {
   var q = document.getElementById('grade-q').value.trim();
   if (!q) return;
   var results = document.getElementById('grade-results');
-  results.innerHTML = '<div class="spin-wrap"><div class="spin-pb"></div><div style="font-size:12px;color:var(--mute);">Searching graded prices…</div></div>';
+  results.innerHTML = '<div class="spin-wrap"><div class="spin-pb"></div><div style="font-size:12px;color:var(--mute);">Searching graded cards…</div></div>';
 
-  // Extract grade from query (PSA 10, PSA 9, etc)
+  // Extract grade
   var gradeMatch = q.match(/PSA\s*(\d+)/i);
   var grade = gradeMatch ? gradeMatch[1] : '10';
-  var cardName = q.replace(/PSA\s*\d+/i, '').trim().replace(/^0+/, '').trim();
-
-  // Detect if it's a card number search
+  var cardName = q.replace(/PSA\s*\d+/i, '').trim();
   var isNumber = /^\d+(\/\d+)?$/.test(cardName);
 
   try {
-    // Search pokemontcg.io for the card image
+    // Fetch ALL versions of this card from pokemontcg.io
     var apiQuery = isNumber
-      ? 'https://api.pokemontcg.io/v2/cards?q=number:' + encodeURIComponent(cardName.split('/')[0].replace(/^0+/,'') || '0') + '&pageSize=4&orderBy=-set.releaseDate'
-      : 'https://api.pokemontcg.io/v2/cards?q=name:"' + encodeURIComponent(cardName) + '"&pageSize=4&orderBy=-set.releaseDate';
+      ? 'https://api.pokemontcg.io/v2/cards?q=number:' + encodeURIComponent(cardName.split('/')[0].replace(/^0+/,'') || '0') + '&pageSize=50'
+      : 'https://api.pokemontcg.io/v2/cards?q=name:"' + encodeURIComponent(cardName) + '"&pageSize=50&orderBy=-set.releaseDate';
     var cardRes = await fetch(apiQuery,
       { headers: { 'Accept':'application/json', 'X-Api-Key':'64958068-ebbb-49b2-bf3f-2daa61478181' } }
     );
@@ -962,41 +960,74 @@ async function doGradeSearch() {
     var ebayUrl   = 'https://www.ebay.com/sch/i.html?_nkw=' + ebayQuery + '&LH_Sold=1&LH_Complete=1&_sop=13';
     var tcgUrl    = 'https://www.tcgplayer.com/search/pokemon/product?q=' + encodeURIComponent(q);
 
-    var img = card ? (card.images.large || card.images.small) : '';
-    var setName = card ? (card.set.name + ' #' + card.number) : '';
+    var cards = (cardData.data || []);
+    if (!cards.length) {
+      results.innerHTML = '<div class="msg">No results for "' + cardName + '"</div>';
+      return;
+    }
 
-    results.innerHTML =
-      '<div style="background:var(--s1);border:1px solid var(--hl2);border-radius:16px;overflow:hidden;margin-bottom:12px;">' +
+    // Render grid of all matching cards
+    results.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:16px;';
+    results.innerHTML = '';
 
-        // Card image + grade badge
-        '<div style="position:relative;background:var(--s2);display:flex;align-items:center;justify-content:center;padding:20px;">' +
-          (img ? '<img src="' + img + '" alt="' + cardName + '" style="max-width:200px;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.6);">' : '<div style="font-size:60px;">🃏</div>') +
-          '<div style="position:absolute;top:12px;right:12px;background:var(--gold);color:#111;font-family:Bebas Neue,sans-serif;font-size:22px;padding:4px 14px;border-radius:9999px;letter-spacing:1px;">PSA ' + grade + '</div>' +
-        '</div>' +
+    cards.forEach(function(card) {
+      var img      = card.images.small || card.images.large || '';
+      var setName  = (card.set && card.set.name) ? card.set.name : '';
+      var num      = card.number ? '#' + card.number : '';
+      var ebayQ    = encodeURIComponent('Pokemon ' + card.name + ' ' + setName + ' PSA ' + grade);
+      var ebayUrl  = 'https://www.ebay.com/sch/i.html?_nkw=' + ebayQ + '&LH_Sold=1&LH_Complete=1&_sop=13';
 
-        // Card info
-        '<div style="padding:16px;">' +
-          '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:4px;">' + cardName + '</div>' +
-          (setName ? '<div style="font-size:11px;color:var(--stone);font-family:DM Mono,monospace;margin-bottom:16px;">' + setName + '</div>' : '<div style="margin-bottom:16px;"></div>') +
+      var a = document.createElement('a');
+      a.href = ebayUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.style.textDecoration = 'none';
+      a.style.display = 'block';
+      a.style.position = 'relative';
 
-          // Grade info grid
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hl);border-radius:10px;overflow:hidden;margin-bottom:16px;">' +
-            '<div style="background:var(--s2);padding:12px 10px;text-align:center;">' +
-              '<div style="font-size:9px;font-family:DM Mono,monospace;letter-spacing:2px;text-transform:uppercase;color:var(--stone);margin-bottom:5px;">GRADE</div>' +
-              '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;color:var(--gold);">PSA ' + grade + '</div>' +
-            '</div>' +
-            '<div style="background:var(--s2);padding:12px 10px;text-align:center;">' +
-              '<div style="font-size:9px;font-family:DM Mono,monospace;letter-spacing:2px;text-transform:uppercase;color:var(--stone);margin-bottom:5px;">CONDITION</div>' +
-              '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;color:var(--green);">' + gradeLabel(grade) + '</div>' +
-            '</div>' +
-          '</div>' +
+      var outer = document.createElement('div');
+      outer.style.cssText = 'background:var(--s1);border:1px solid var(--hl);border-radius:14px;overflow:hidden;';
 
-          '<div style="font-size:10px;color:var(--mute);font-family:DM Mono,monospace;margin-bottom:14px;text-align:center;letter-spacing:0.5px;">TAP BELOW FOR LIVE GRADED PRICES</div>' +
+      // PSA badge overlay
+      var badge = document.createElement('div');
+      badge.style.cssText = 'position:absolute;top:8px;right:8px;background:var(--gold);color:#111;font-family:Bebas Neue,sans-serif;font-size:13px;padding:2px 8px;border-radius:9999px;z-index:2;letter-spacing:0.5px;';
+      badge.textContent = 'PSA ' + grade;
 
-          '<a href="' + ebayUrl + '" target="_blank" style="display:flex;align-items:center;justify-content:center;width:100%;padding:14px;background:var(--ink);color:var(--bg);border-radius:9999px;font-family:DM Sans,sans-serif;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:10px;box-sizing:border-box;">🏷️ View PSA ' + grade + ' Sold on eBay →</a>' +
-          '<a href="' + tcgUrl + '" target="_blank" style="display:flex;align-items:center;justify-content:center;width:100%;padding:14px;background:transparent;color:var(--ink);border:1px solid var(--hl);border-radius:9999px;font-family:DM Sans,sans-serif;font-size:14px;font-weight:700;text-decoration:none;box-sizing:border-box;">🃏 View on TCGPlayer →</a>' +
-        '</div>' +
-      '</div>';
+      // Image
+      var imgBox = document.createElement('div');
+      imgBox.style.cssText = 'background:var(--s2);width:100%;aspect-ratio:63/88;display:flex;align-items:center;justify-content:center;overflow:hidden;';
+      if (img) {
+        var imgEl = document.createElement('img');
+        imgEl.src = img; imgEl.alt = card.name; imgEl.loading = 'lazy';
+        imgEl.style.cssText = 'width:100%;height:100%;object-fit:contain;';
+        imgBox.appendChild(imgEl);
+      } else { imgBox.textContent = '🃏'; }
+
+      // Info
+      var info = document.createElement('div');
+      info.style.cssText = 'padding:9px 10px 11px;';
+
+      var nameEl = document.createElement('div');
+      nameEl.style.cssText = 'font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      nameEl.textContent = card.name;
+
+      var setEl = document.createElement('div');
+      setEl.style.cssText = 'font-size:9px;color:var(--stone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;';
+      setEl.textContent = setName + ' ' + num;
+
+      var ebayBtn = document.createElement('div');
+      ebayBtn.style.cssText = 'font-size:9px;font-weight:700;color:var(--gold);';
+      ebayBtn.textContent = 'PSA ' + grade + ' SOLD →';
+
+      info.appendChild(nameEl);
+      info.appendChild(setEl);
+      info.appendChild(ebayBtn);
+      outer.appendChild(imgBox);
+      outer.appendChild(info);
+      a.appendChild(badge);
+      a.appendChild(outer);
+      results.appendChild(a);
+    });
 
   } catch(e) {
     results.innerHTML = '<div class="msg" style="color:var(--red);">Error: ' + e.message + '</div>';
