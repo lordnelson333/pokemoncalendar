@@ -265,6 +265,62 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-
 }
 #splash-pb::before{content:'';position:absolute;top:50%;left:0;right:0;height:3px;background:rgba(255,255,255,0.9);transform:translateY(-50%);}
 #splash-pb::after{content:'';position:absolute;top:50%;left:50%;width:18px;height:18px;background:#fff;border:3px solid rgba(255,255,255,0.9);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 3px rgba(8,8,16,0.9);}
+
+/* Straw Hat Jolly Roger */
+.nav-jolly {
+  width:26px;height:26px;position:relative;margin:0 auto 2px;flex-shrink:0;
+}
+/* Crossbones */
+.nav-jolly-bone1,.nav-jolly-bone2 {
+  position:absolute;width:24px;height:3px;background:rgba(240,238,255,0.7);
+  border-radius:2px;top:50%;left:1px;
+}
+.nav-jolly-bone1{transform:translateY(-50%) rotate(45deg);}
+.nav-jolly-bone2{transform:translateY(-50%) rotate(-45deg);}
+.nav-jolly-bone1::before,.nav-jolly-bone1::after,
+.nav-jolly-bone2::before,.nav-jolly-bone2::after {
+  content:'';position:absolute;width:5px;height:5px;
+  background:rgba(240,238,255,0.7);border-radius:50%;top:50%;transform:translateY(-50%);
+}
+.nav-jolly-bone1::before,.nav-jolly-bone2::before{left:-2px;}
+.nav-jolly-bone1::after,.nav-jolly-bone2::after{right:-2px;}
+/* Skull */
+.nav-jolly-skull {
+  width:14px;height:12px;background:#f0eeff;border-radius:50% 50% 38% 38%;
+  position:absolute;top:3px;left:50%;transform:translateX(-50%);
+  z-index:2;
+}
+.nav-jolly-skull::before {
+  content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+  width:9px;height:5px;background:#f0eeff;border-radius:0 0 3px 3px;
+}
+/* Eyes */
+.nav-jolly-eye1,.nav-jolly-eye2 {
+  position:absolute;width:4px;height:4px;background:var(--bg);border-radius:50%;top:3px;z-index:3;
+}
+.nav-jolly-eye1{left:2px;}
+.nav-jolly-eye2{right:2px;}
+/* Straw hat brim */
+.nav-jolly-hat-brim {
+  position:absolute;top:1px;left:50%;transform:translateX(-50%);
+  width:20px;height:3px;background:#c8922a;border-radius:2px;z-index:4;
+}
+/* Straw hat top */
+.nav-jolly-hat-top {
+  position:absolute;top:-4px;left:50%;transform:translateX(-50%);
+  width:12px;height:6px;background:#d4a43a;border-radius:40% 40% 0 0;z-index:4;
+}
+/* Hat band */
+.nav-jolly-hat-band {
+  position:absolute;top:0px;left:50%;transform:translateX(-50%);
+  width:12px;height:2px;background:#8b1a1a;border-radius:1px;z-index:5;
+}
+.nav-t.active .nav-jolly-skull,
+.nav-t.active .nav-jolly-skull::before { background:#fff; }
+.nav-t.active .nav-jolly-bone1,
+.nav-t.active .nav-jolly-bone2 { background:rgba(255,255,255,0.9); }
+.nav-t.active .nav-jolly-bone1::before,.nav-t.active .nav-jolly-bone1::after,
+.nav-t.active .nav-jolly-bone2::before,.nav-t.active .nav-jolly-bone2::after { background:rgba(255,255,255,0.9); }
 </style>
 </head>
 <body>
@@ -471,7 +527,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-
   <div class="nav-t" data-tab="calendar"><div class="nav-icon">📅</div><div class="nav-label">Calendar</div></div>
   <div class="nav-t" data-tab="cards"><div class="nav-pb-icon"></div><div class="nav-label">Cards</div></div>
   <div class="nav-t" data-tab="grading"><div class="nav-icon">🏆</div><div class="nav-label">Grading</div></div>
-  <div class="nav-t" data-tab="settings"><div class="nav-icon">🃏</div><div class="nav-label">TCGs</div></div>
+  <div class="nav-t" data-tab="settings">
+  <div class="nav-jolly">
+    <div class="nav-jolly-bone1"></div>
+    <div class="nav-jolly-bone2"></div>
+    <div class="nav-jolly-skull">
+      <div class="nav-jolly-eye1"></div>
+      <div class="nav-jolly-eye2"></div>
+    </div>
+    <div class="nav-jolly-hat-brim"></div>
+    <div class="nav-jolly-hat-top"></div>
+    <div class="nav-jolly-hat-band"></div>
+  </div>
+  <div class="nav-label">TCGs</div>
+</div>
 </nav>
 
 <script>
@@ -850,7 +919,7 @@ renderSets();
 // Auto-search first One Piece chip on load
 setTimeout(function() {
   var firstChip = document.querySelector('#tcg-chips .q-chip');
-  if (firstChip) { firstChip.classList.add('sel'); document.getElementById('tcg-q').value = 'Monkey D. Luffy'; doTCGSearch(); }
+  if (firstChip) { firstChip.classList.add('sel'); document.getElementById('tcg-q').value = 'Luffy'; doTCGSearch(); }
 }, 100);
 </script>
 
@@ -1070,7 +1139,7 @@ document.getElementById('grade-q').addEventListener('keydown', function(e) {
 var activeTCG = 'onepiece';
 
 var TCG_CONFIG = {
-  onepiece:   { name:'One Piece',   game:'onepiece',   chips:['Monkey D. Luffy','Roronoa Zoro','Nami','Shanks','Boa Hancock'], placeholder:'Search One Piece cards…' },
+  onepiece:   { name:'One Piece',   game:'onepiece',   chips:['Luffy','Zoro','Nami','Shanks','Hancock'], placeholder:'Search One Piece cards…' },
   dragonball: { name:'Dragon Ball', game:'dragonball', chips:['Goku','Vegeta','Gohan','Frieza','Piccolo'],                    placeholder:'Search Dragon Ball cards…' },
   digimon:    { name:'Digimon',     game:'digimon',    chips:['Agumon','Gabumon','Greymon','MetalGarurumon','Omnimon'],       placeholder:'Search Digimon cards…' },
   mtg:        { name:'Magic',       game:'mtg',        chips:['Black Lotus','Lightning Bolt','Counterspell','Llanowar Elves','Dark Ritual'], placeholder:'Search Magic cards…' },
