@@ -140,7 +140,7 @@ const server = http.createServer(async (req, res) => {
     (async () => {
       try {
         const apiRes = await fetch(
-          'https://optcgapi.com/api/sets/filtered/?name=' + encodeURIComponent(name),
+          'https://optcgapi.com/api/sets/filtered/?card_name=' + encodeURIComponent(name),
           { headers: { 'Accept': 'application/json', 'User-Agent': 'PokéRadar/1.0' } }
         );
         const data = await apiRes.json();
