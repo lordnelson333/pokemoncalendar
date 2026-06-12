@@ -847,6 +847,11 @@ function daysUntil(dateStr) {
 
 // Init
 renderSets();
+// Auto-search first One Piece chip on load
+setTimeout(function() {
+  var firstChip = document.querySelector('#tcg-chips .q-chip');
+  if (firstChip) { firstChip.classList.add('sel'); document.getElementById('tcg-q').value = 'Monkey D. Luffy'; doTCGSearch(); }
+}, 100);
 </script>
 
 
@@ -862,6 +867,14 @@ function initAudio() {
   audio = new Audio('/confident-glow.mp3');
   audio.loop = true;
   audio.volume = 0.6;
+  // Extra safety — restart if it ever stops unexpectedly
+  audio.addEventListener('ended', function() {
+    if (isPlaying) { audio.currentTime = 0; audio.play().catch(function(){}); }
+  });
+  audio.addEventListener('pause', function() {
+    // Only restart if we didn't intentionally pause
+    if (isPlaying) { setTimeout(function(){ if(isPlaying && audio.paused) audio.play().catch(function(){}); }, 500); }
+  });
   audio.play().then(function() {
     isPlaying = true;
     document.getElementById('music-icon').textContent = '❚❚';
@@ -1078,6 +1091,9 @@ function setTCG(el, game) {
     return '<div class="q-chip" onclick="quickTCG(this,\'' + c + '\')">' + c + '</div>';
   }).join('');
   document.getElementById('tcg-grid').innerHTML = '<div class="msg" style="grid-column:1/-1;">Search a ' + cfg.name + ' card above</div>';
+  // Auto-search first chip when switching games
+  var firstChip = document.querySelector('#tcg-chips .q-chip');
+  if (firstChip) { firstChip.classList.add('sel'); document.getElementById('tcg-q').value = cfg.chips[0]; doTCGSearch(); }
 }
 
 function quickTCG(el, q) {
