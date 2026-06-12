@@ -1060,30 +1060,154 @@ async function doTCGSearch() {
   var q    = document.getElementById('tcg-q').value.trim();
   if (!q) return;
   var grid = document.getElementById('tcg-grid');
+  grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:16px;';
   grid.innerHTML = '<div class="spin-wrap" style="grid-column:1/-1;"><div class="spin-pb"></div><div style="font-size:12px;color:var(--mute);">Searching…</div></div>';
 
   var cfg = TCG_CONFIG[activeTCG];
 
   try {
-    // pokemontcg.io supports multiple games via the game parameter
-    var url = 'https://api.pokemontcg.io/v2/cards?q=name:"' + encodeURIComponent(q) + '"&pageSize=24';
-    // For non-Pokemon games use dedicated APIs or eBay fallback
-    if (activeTCG !== 'pokemon') {
-      // Use TCGCSV or direct eBay search for other games
+    if (activeTCG === 'onepiece') {
+      // Use OPTCG API filtered endpoint
+      var res = await fetch('/api/optcg?name=' + encodeURIComponent(q));
+      if (!res.ok) throw new Error('API error');
+      var data = await res.json();
+      var cards = Array.isArray(data) ? data : (data.results || data.cards || data.data || []);
+      if (!cards.length) {
+        // Try allSetCards search
+        var res2 = await fetch('/api/optcg?name=' + encodeURIComponent(q));
+        var data2 = await res2.json();
+        var all = Array.isArray(data2) ? data2 : [];
+        cards = all.filter(function(c) {
+          return (c.name || c.card_name || '').toLowerCase().includes(q.toLowerCase());
+        }).slice(0, 20);
+      }
+      if (!cards.length) { grid.innerHTML = '<div class="msg" style="grid-column:1/-1;">No results for "' + q + '"</div>'; return; }
+      renderOPTCGCards(cards, grid);
+    } else if (activeTCG === 'yugioh') {
+      var res  = await fetch('https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=' + encodeURIComponent(q) + '&num=20&offset=0');
+      if (!res.ok) throw new Error('API error');
+      var data = await res.json();
+      var cards = data.data || [];
+      if (!cards.length) { grid.innerHTML = '<div class="msg" style="grid-column:1/-1;">No results for "' + q + '"</div>'; return; }
+      renderYGOCards(cards, grid);
+    } else if (activeTCG === 'mtg') {
+      var res  = await fetch('https://api.scryfall.com/cards/search?q=' + encodeURIComponent(q) + '&per_page=20');
+      if (!res.ok) throw new Error('API error');
+      var data = await res.json();
+      var cards = data.data || [];
+      if (!cards.length) { grid.innerHTML = '<div class="msg" style="grid-column:1/-1;">No results for "' + q + '"</div>'; return; }
+      renderMTGCards(cards, grid);
+    } else {
       renderTCGEbay(q, cfg, grid);
-      return;
     }
-    var res  = await fetch(url, { headers: {'Accept':'application/json','X-Api-Key':'64958068-ebbb-49b2-bf3f-2daa61478181'} });
-    var data = await res.json();
-    var cards = data.data || [];
-    if (!cards.length) {
-      grid.innerHTML = '<div class="msg" style="grid-column:1/-1;">No results for "' + q + '"</div>';
-      return;
-    }
-    renderTCGCards(cards, grid);
   } catch(e) {
     renderTCGEbay(q, cfg, grid);
   }
+}
+
+function renderOPTCGCards(cards, grid) {
+  grid.innerHTML = '';
+  cards.forEach(function(card) {
+    // OPTCG API image fields
+    var imgId  = card.image_id || card.imageId || '';
+    var img    = card.image || card.imageUrl || card.img_url || card.image_url || '';
+    if (!img && imgId) img = 'https://en.onepiece-cardgame.com/images/cardlist/card/' + imgId + '.png';
+    if (!img && card.card_id) img = 'https://en.onepiece-cardgame.com/images/cardlist/card/' + card.card_id + '.png';
+    var name   = card.name || card.card_name || card.title || '';
+    var set    = card.set || card.set_id || card.setId || '';
+    var num    = card.card_id || card.number || card.cardNumber || '';
+    var ebayQ  = encodeURIComponent('One Piece TCG ' + name);
+    var ebayUrl = 'https://www.ebay.com/sch/i.html?_nkw=' + ebayQ;
+
+    var a = document.createElement('a');
+    a.className = 'card-item';
+    a.href = ebayUrl;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+
+    var imgBox = document.createElement('div');
+    imgBox.className = 'card-img-box';
+    if (img) {
+      var imgEl = document.createElement('img');
+      imgEl.src = img; imgEl.alt = name; imgEl.loading = 'lazy';
+      imgBox.appendChild(imgEl);
+    } else { imgBox.textContent = '🃏'; }
+
+    var info = document.createElement('div'); info.className = 'card-info';
+    var nameEl = document.createElement('div'); nameEl.className = 'card-name'; nameEl.textContent = name;
+    var setEl  = document.createElement('div'); setEl.className  = 'card-set';  setEl.textContent  = set + (num ? ' #'+num : '');
+    var viewEl = document.createElement('div'); viewEl.className = 'card-view'; viewEl.textContent = 'VIEW ON EBAY →';
+    info.appendChild(nameEl); info.appendChild(setEl); info.appendChild(viewEl);
+    a.appendChild(imgBox); a.appendChild(info);
+    grid.appendChild(a);
+  });
+}
+
+function renderYGOCards(cards, grid) {
+  grid.innerHTML = '';
+  cards.forEach(function(card) {
+    var img    = (card.card_images && card.card_images[0]) ? card.card_images[0].image_url_small : '';
+    var name   = card.name || '';
+    var type   = card.type || '';
+    var price  = (card.card_prices && card.card_prices[0]) ? parseFloat(card.card_prices[0].tcgplayer_price) : null;
+    var tcgUrl = 'https://www.tcgplayer.com/search/yugioh/product?q=' + encodeURIComponent(name);
+
+    var a = document.createElement('a');
+    a.className = 'card-item'; a.href = tcgUrl; a.target = '_blank'; a.rel = 'noopener noreferrer';
+
+    var imgBox = document.createElement('div'); imgBox.className = 'card-img-box';
+    if (img) { var imgEl = document.createElement('img'); imgEl.src = img; imgEl.alt = name; imgEl.loading = 'lazy'; imgBox.appendChild(imgEl); }
+    else { imgBox.textContent = '🃏'; }
+
+    var info = document.createElement('div'); info.className = 'card-info';
+    var nameEl = document.createElement('div'); nameEl.className = 'card-name'; nameEl.textContent = name;
+    var setEl  = document.createElement('div'); setEl.className  = 'card-set';  setEl.textContent  = type;
+    info.appendChild(nameEl); info.appendChild(setEl);
+    if (price) {
+      var p = document.createElement('div'); p.className = 'card-price'; p.textContent = '$' + price.toFixed(2);
+      var l = document.createElement('div'); l.className = 'card-price-label'; l.textContent = 'TCGPlayer';
+      info.appendChild(p); info.appendChild(l);
+    } else {
+      var v = document.createElement('div'); v.className = 'card-view'; v.textContent = 'VIEW →';
+      info.appendChild(v);
+    }
+    a.appendChild(imgBox); a.appendChild(info);
+    grid.appendChild(a);
+  });
+}
+
+function renderMTGCards(cards, grid) {
+  grid.innerHTML = '';
+  cards.forEach(function(card) {
+    var img    = (card.image_uris && card.image_uris.small) ? card.image_uris.small
+               : (card.card_faces && card.card_faces[0] && card.card_faces[0].image_uris) ? card.card_faces[0].image_uris.small : '';
+    var name   = card.name || '';
+    var set    = card.set_name || '';
+    var price  = card.prices ? parseFloat(card.prices.usd || 0) : null;
+    var tcgUrl = card.purchase_uris ? card.purchase_uris.tcgplayer : 'https://www.tcgplayer.com/search/magic/product?q=' + encodeURIComponent(name);
+
+    var a = document.createElement('a');
+    a.className = 'card-item'; a.href = tcgUrl || '#'; a.target = '_blank'; a.rel = 'noopener noreferrer';
+
+    var imgBox = document.createElement('div'); imgBox.className = 'card-img-box';
+    if (img) { var imgEl = document.createElement('img'); imgEl.src = img; imgEl.alt = name; imgEl.loading = 'lazy'; imgBox.appendChild(imgEl); }
+    else { imgBox.textContent = '🃏'; }
+
+    var info = document.createElement('div'); info.className = 'card-info';
+    var nameEl = document.createElement('div'); nameEl.className = 'card-name'; nameEl.textContent = name;
+    var setEl  = document.createElement('div'); setEl.className  = 'card-set';  setEl.textContent  = set;
+    info.appendChild(nameEl); info.appendChild(setEl);
+    if (price && price > 0) {
+      var p = document.createElement('div'); p.className = 'card-price'; p.textContent = '$' + price.toFixed(2);
+      var l = document.createElement('div'); l.className = 'card-price-label'; l.textContent = 'TCGPlayer';
+      info.appendChild(p); info.appendChild(l);
+    } else {
+      var v = document.createElement('div'); v.className = 'card-view'; v.textContent = 'VIEW →';
+      info.appendChild(v);
+    }
+    a.appendChild(imgBox); a.appendChild(info);
+    grid.appendChild(a);
+  });
 }
 
 function renderTCGCards(cards, grid) {
